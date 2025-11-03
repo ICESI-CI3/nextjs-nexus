@@ -7,6 +7,7 @@
 export interface User {
   id: string;
   email: string;
+  twoFactorEnabled: boolean;
   // Add other fields that your backend returns
   [key: string]: unknown; // Allow additional properties
 }

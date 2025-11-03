@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, AuthTokens, LoginCredentials, RegisterData, ApiError } from '@/src/lib/types';
+import type { User, ApiError } from '@/src/lib/types';
 import { AUTH_CONFIG } from '@/src/lib/constants';
 import { getLocalStorage, setLocalStorage, removeLocalStorage } from '@/src/lib/utils';
 import { setAuthToken, removeAuthToken } from '@/src/lib/apiClient';
+import authService, { type LoginResult } from '@/src/services/authService';
 
 /**
  * Auth Store State
@@ -13,6 +14,8 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  // 2FA status cached client-side; null means unknown (not yet fetched/derived)
+  twoFactorEnabled: boolean | null;
 }
 
 /**
@@ -20,13 +23,15 @@ interface AuthState {
  */
 interface AuthActions {
   setUser: (user: User | null) => void;
-  setTokens: (tokens: AuthTokens) => void;
+  setTokens: (tokens: { accessToken: string; refreshToken?: string }) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
-  logout: () => void;
+  setTwoFactorEnabled: (enabled: boolean | null) => void;
+  login: (payload: { email: string; password: string }) => Promise<LoginResult>;
+  register: () => Promise<never>;
+  logout: () => Promise<void>;
   checkAuth: () => void;
+  fetchProfile: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -48,8 +53,9 @@ export const useAuthStore = create<AuthStore>()(
       // Initial state
       user: null,
       isAuthenticated: false,
-      isLoading: false,
+      isLoading: true,
       error: null,
+      twoFactorEnabled: null,
 
       // Actions
       setUser: (user) => {
@@ -66,93 +72,67 @@ export const useAuthStore = create<AuthStore>()(
         if (tokens.refreshToken) {
           setLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY, tokens.refreshToken);
         }
+        set({ isAuthenticated: true });
       },
 
       setLoading: (loading) => set({ isLoading: loading }),
 
       setError: (error) => set({ error }),
 
+      setTwoFactorEnabled: (enabled) => set({ twoFactorEnabled: enabled }),
+
       /**
-       * Login action
-       * IMPORTANT: Adjust this to match your backend API response structure
+       * Login action (adapted to backend that may require 2FA)
        */
-      login: async (credentials) => {
+      login: async ({ email, password }) => {
         try {
           set({ isLoading: true, error: null });
+          const result = await authService.login(email, password);
 
-          // Import API client dynamically to avoid circular dependencies
-          const { post } = await import('@/src/lib/apiClient');
+          if ('requires2FA' in result && result.requires2FA) {
+            set({ isLoading: false });
+            return result;
+          }
 
-          // TODO: Adjust endpoint and response type based on YOUR backend
-          // Example response structures:
-          // Option 1: { user: User, tokens: AuthTokens }
-          // Option 2: { data: { user: User, tokens: AuthTokens } }
-          // Option 3: { user: User, accessToken: string, refreshToken: string }
-          const response = await post<{ user: User; tokens: AuthTokens }>(
-            '/auth/login',
-            credentials
-          );
-
-          // TODO: Adjust based on your backend response structure
-          get().setUser(response.user);
-          get().setTokens(response.tokens);
-
+          // Persist and mark authenticated
+          get().setTokens({ accessToken: result.accessToken, refreshToken: result.refreshToken });
           set({ isLoading: false });
+          return result;
         } catch (error) {
           const apiError = error as ApiError;
-          set({
-            error: apiError.message || 'Error al iniciar sesión',
-            isLoading: false,
-          });
+          set({ error: apiError.message || 'Error al iniciar sesión', isLoading: false });
           throw error;
         }
       },
 
-      /**
-       * Register action
-       * IMPORTANT: Adjust this to match your backend API response structure
-       */
-      register: async (data) => {
-        try {
-          set({ isLoading: true, error: null });
-
-          const { post } = await import('@/src/lib/apiClient');
-
-          // TODO: Adjust endpoint and response type based on YOUR backend
-          const response = await post<{ user: User; tokens: AuthTokens }>('/auth/register', data);
-
-          // TODO: Adjust based on your backend response structure
-          get().setUser(response.user);
-          get().setTokens(response.tokens);
-
-          set({ isLoading: false });
-        } catch (error) {
-          const apiError = error as ApiError;
-          set({
-            error: apiError.message || 'Error al registrarse',
-            isLoading: false,
-          });
-          throw error;
-        }
+      // Placeholder: implement register when backend contract is defined
+      register: async () => {
+        throw new Error('Not implemented');
       },
 
       /**
        * Logout action
        */
-      logout: () => {
-        removeAuthToken();
-        removeLocalStorage(AUTH_CONFIG.USER_KEY);
-        removeLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY);
+      logout: async () => {
+        try {
+          set({ isLoading: true });
+          await authService.logout();
+        } finally {
+          removeAuthToken();
+          removeLocalStorage(AUTH_CONFIG.USER_KEY);
+          removeLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY);
 
-        set({
-          user: null,
-          isAuthenticated: false,
-          error: null,
-        });
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+            twoFactorEnabled: null,
+          });
 
-        // Redirect to login
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
         }
       },
 
@@ -160,13 +140,28 @@ export const useAuthStore = create<AuthStore>()(
        * Check authentication on app load
        */
       checkAuth: () => {
+        set({ isLoading: true });
         const token = getLocalStorage<string | null>(AUTH_CONFIG.TOKEN_KEY, null);
-        const user = getLocalStorage<User | null>(AUTH_CONFIG.USER_KEY, null);
-
-        if (token && user) {
-          set({ user, isAuthenticated: true });
+        if (token) {
+          set({ isAuthenticated: true, isLoading: false });
         } else {
-          set({ user: null, isAuthenticated: false });
+          set({ user: null, isAuthenticated: false, isLoading: false });
+        }
+      },
+
+      /**
+       * Fetch user profile from backend and update store
+       */
+      fetchProfile: async () => {
+        try {
+          set({ isLoading: true });
+          const profile = await authService.getProfile();
+          get().setUser(profile);
+          set({ isLoading: false });
+        } catch (error) {
+          const apiError = error as ApiError;
+          set({ error: apiError.message || 'Error al cargar perfil', isLoading: false });
+          throw error;
         }
       },
 
@@ -177,6 +172,7 @@ export const useAuthStore = create<AuthStore>()(
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
+        twoFactorEnabled: state.twoFactorEnabled,
       }),
     }
   )

@@ -63,20 +63,24 @@ apiClient.interceptors.response.use(
           throw new Error('No refresh token available');
         }
 
-        // Call refresh token endpoint
-        const response = await axios.post<
-          ApiResponse<{ accessToken: string; refreshToken: string }>
-        >(`${API_CONFIG.BASE_URL}/auth/refresh`, { refreshToken });
+        // Call refresh token endpoint (backend expects snake_case)
+        const response = await axios.post(`${API_CONFIG.BASE_URL}/auth/refresh`, {
+          refresh_token: refreshToken,
+        });
 
-        const { accessToken, refreshToken: newRefreshToken } = response.data.data;
+        // Backend returns { access_token, refresh_token }
+        const { access_token, refresh_token: newRefreshToken } = response.data as {
+          access_token: string;
+          refresh_token: string;
+        };
 
         // Save new tokens
-        setLocalStorage(AUTH_CONFIG.TOKEN_KEY, accessToken);
+        setLocalStorage(AUTH_CONFIG.TOKEN_KEY, access_token);
         setLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY, newRefreshToken);
 
         // Retry original request with new token
         if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          originalRequest.headers.Authorization = `Bearer ${access_token}`;
         }
 
         return apiClient(originalRequest);
