@@ -11,7 +11,10 @@ import { ROUTES } from '@/src/lib/constants';
 import useRequireAuth from '@/src/hooks/useRequireAuth';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 import QRCode from 'qrcode';
-// Pequeño helper seguro para extraer status y mensaje de errores tipo Axios sin usar `any`
+import { FormError } from '@/src/components/ui/FormError';
+import { FormSuccess } from '@/src/components/ui/FormSuccess';
+import ErrorBoundary from '@/src/components/ui/ErrorBoundary';
+
 type ErrorLike = { message?: string };
 type ResponseLike = { status?: number; data?: unknown };
 type AxiosLikeError = ErrorLike & { response?: ResponseLike };
@@ -53,10 +56,9 @@ const initialValues: TotpValues = {
   totpCode: '',
 };
 
-export default function Setup2FAPage() {
+function Setup2FAPageContent() {
   const { isAuthenticated, isLoading: authLoading } = useRequireAuth();
   const router = useRouter();
-  // Selectores finos para evitar snapshots inestables en React 19
   const twoFactorEnabled = useAuthStore((s) => s.twoFactorEnabled);
   const setTwoFactorEnabled = useAuthStore((s) => s.setTwoFactorEnabled);
 
@@ -65,8 +67,6 @@ export default function Setup2FAPage() {
     qrCodeUrl: string;
     backupCodes: string[];
   } | null>(null);
-  // Cuando el backend ya tiene 2FA activado, el endpoint setup-2fa responde 400.
-  // Guardamos este estado para mostrar la vista de "gestión" (desactivar) en vez del setup.
   const [alreadyEnabled, setAlreadyEnabled] = React.useState<boolean>(twoFactorEnabled === true);
   const [values, setValues] = React.useState<TotpValues>(initialValues);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -77,7 +77,12 @@ export default function Setup2FAPage() {
   const [disableCode, setDisableCode] = React.useState('');
   const [isDisabling, setIsDisabling] = React.useState(false);
 
-  // Cargar el QR y secret al montar
+  const [qrError, setQrError] = React.useState<string | undefined>();
+  const [enableFormError, setEnableFormError] = React.useState<string | undefined>();
+  const [enableFormSuccess, setEnableFormSuccess] = React.useState<string | undefined>();
+  const [disableFormError, setDisableFormError] = React.useState<string | undefined>();
+  const [disableFormSuccess, setDisableFormSuccess] = React.useState<string | undefined>();
+
   React.useEffect(() => {
     if (isAuthenticated) {
       authService
@@ -89,27 +94,25 @@ export default function Setup2FAPage() {
         .catch((err: unknown) => {
           const { status, message } = getErrorInfo(err);
           const msg = message ? String(message) : '';
-          // Caso esperado: 400 cuando ya está activada
           if (status === 400 || /already\s*enabled/i.test(msg)) {
             setAlreadyEnabled(true);
             setTwoFactorEnabled(true);
           } else if (status === 401) {
-            // Token inválido/expirado; el interceptor intentará refrescar, pero por si acaso
             showToast.error('Sesión expirada. Inicia sesión nuevamente.');
             router.push('/login');
           } else {
-            showToast.error('Error al cargar configuración 2FA');
+            // Error manejado por el return
           }
           setIsLoadingSetup(false);
         });
     }
   }, [isAuthenticated, router, setTwoFactorEnabled]);
 
-  // Generar imagen QR (data URL) a partir del otpauth://
   React.useEffect(() => {
     async function generateQR() {
       if (!setupData?.qrCodeUrl) return;
       try {
+        setQrError(undefined);
         setIsGeneratingQR(true);
         const dataUrl = await QRCode.toDataURL(setupData.qrCodeUrl, {
           errorCorrectionLevel: 'M',
@@ -117,18 +120,25 @@ export default function Setup2FAPage() {
           width: 192,
         });
         setQrDataUrl(dataUrl);
-      } catch {
-        showToast.error('No se pudo generar el código QR');
+      } catch (error) {
+        // Log error silently without breaking UI
+        console.error('QR generation error:', error);
+        setQrError('No se pudo generar el código QR');
       } finally {
         setIsGeneratingQR(false);
       }
     }
-    generateQR();
+
+    // Call with safety net to prevent unhandled promise rejections
+    generateQR().catch((error) => {
+      console.error('Unexpected error in generateQR:', error);
+      setQrError('No se pudo generar el código QR');
+      setIsGeneratingQR(false);
+    });
   }, [setupData?.qrCodeUrl]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
-    // Solo permitir dígitos y máximo 6 caracteres
     if (/^\d*$/.test(value) && value.length <= 6) {
       setValues((prev) => ({ ...prev, [name]: value }));
     }
@@ -137,6 +147,8 @@ export default function Setup2FAPage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErrors({});
+    setEnableFormError(undefined);
+    setEnableFormSuccess(undefined);
 
     const parse = totpSchema.safeParse(values);
     if (!parse.success) {
@@ -148,17 +160,17 @@ export default function Setup2FAPage() {
       setIsLoading(true);
       await authService.enable2FA(values.totpCode);
 
-      showToast.success('2FA activado correctamente');
+      setEnableFormSuccess('2FA activado correctamente');
       setTwoFactorEnabled(true);
 
-      // Redirigir al dashboard
-      router.push(ROUTES.DASHBOARD);
+      setTimeout(() => {
+        router.push(ROUTES.DASHBOARD);
+      }, 1500);
     } catch (err: unknown) {
       const { message } = getErrorInfo(err);
       const msg = message || 'Código incorrecto. Intenta de nuevo.';
-      console.error('Enable 2FA error:', err);
-      showToast.error(msg);
-    } finally {
+      // No log expected user errors to avoid Next.js error overlay
+      setEnableFormError(msg);
       setIsLoading(false);
     }
   }
@@ -175,7 +187,6 @@ export default function Setup2FAPage() {
     return null;
   }
 
-  // Si ya estaba activada, mostramos la pantalla de gestión (desactivar) en vez de error.
   if (!setupData && !alreadyEnabled) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-10">
@@ -210,7 +221,6 @@ export default function Setup2FAPage() {
       <div className="space-y-6">
         {!alreadyEnabled && setupData && (
           <>
-            {/* Paso 1: Escanear QR */}
             <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-medium text-slate-900">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs text-white">
@@ -224,7 +234,6 @@ export default function Setup2FAPage() {
               </p>
               <div className="flex justify-center rounded-lg bg-slate-50 p-6">
                 {qrDataUrl ? (
-                  // Mostramos el QR generado como data URL
                   <img src={qrDataUrl} alt="QR Code para 2FA" className="h-48 w-48" />
                 ) : (
                   <div className="flex h-48 w-48 items-center justify-center rounded-md border border-slate-200 bg-white text-sm text-slate-500">
@@ -232,13 +241,13 @@ export default function Setup2FAPage() {
                   </div>
                 )}
               </div>
+              {qrError && <FormError message={qrError} className="mt-4" />}
             </div>
           </>
         )}
 
         {!alreadyEnabled && (
           <>
-            {/* Paso 2: Verificar código */}
             <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-medium text-slate-900">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs text-white">
@@ -251,6 +260,9 @@ export default function Setup2FAPage() {
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                <FormError message={enableFormError} />
+                <FormSuccess message={enableFormSuccess} />
+
                 <div className="space-y-1">
                   <label htmlFor="totpCode" className="block text-sm font-medium text-slate-700">
                     Código de verificación
@@ -292,7 +304,7 @@ export default function Setup2FAPage() {
                   <Button
                     type="submit"
                     fullWidth
-                    disabled={isLoading || values.totpCode.length !== 6}
+                    disabled={isLoading || values.totpCode.length !== 6 || !!enableFormSuccess}
                   >
                     {isLoading ? 'Activando…' : 'Activar 2FA'}
                   </Button>
@@ -303,7 +315,6 @@ export default function Setup2FAPage() {
         )}
         {!alreadyEnabled && setupData && (
           <>
-            {/* Códigos de respaldo */}
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
               <h3 className="mb-2 flex items-center gap-2 text-base font-medium text-amber-900">
                 <svg
@@ -352,24 +363,30 @@ export default function Setup2FAPage() {
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
+                setDisableFormError(undefined);
+                setDisableFormSuccess(undefined);
                 if (!disableCode || disableCode.trim().length < 4) return;
                 try {
                   setIsDisabling(true);
                   await authService.disable2FA(disableCode.trim());
-                  showToast.success('2FA desactivado correctamente');
+                  setDisableFormSuccess('2FA desactivado correctamente');
                   setTwoFactorEnabled(false);
-                  router.push(ROUTES.DASHBOARD);
+                  setTimeout(() => {
+                    router.push(ROUTES.DASHBOARD);
+                  }, 1500);
                 } catch (err: unknown) {
                   const { message } = getErrorInfo(err);
                   const msg = message || 'No se pudo desactivar 2FA';
-                  console.error('Disable 2FA error:', err);
-                  showToast.error(msg);
-                } finally {
+                  // No log expected user errors to avoid Next.js error overlay
+                  setDisableFormError(msg);
                   setIsDisabling(false);
                 }
               }}
               className="space-y-4"
             >
+              <FormError message={disableFormError} />
+              <FormSuccess message={disableFormSuccess} />
+
               <div className="space-y-1">
                 <label htmlFor="disableCode" className="block text-sm font-medium text-slate-700">
                   Código (TOTP o respaldo)
@@ -393,7 +410,11 @@ export default function Setup2FAPage() {
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" fullWidth disabled={isDisabling || !disableCode}>
+                <Button
+                  type="submit"
+                  fullWidth
+                  disabled={isDisabling || !disableCode || !!disableFormSuccess}
+                >
                   {isDisabling ? 'Desactivando…' : 'Desactivar 2FA'}
                 </Button>
               </div>
@@ -402,5 +423,13 @@ export default function Setup2FAPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function Setup2FAPage() {
+  return (
+    <ErrorBoundary>
+      <Setup2FAPageContent />
+    </ErrorBoundary>
   );
 }

@@ -3,43 +3,51 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '@/src/stores/useAuthStore';
 
-// Nota React 19: para evitar la advertencia "The result of getSnapshot should be cached",
-// usa selectores por propiedad/acción en lugar de leer todo el estado de una vez.
+/**
+ * Custom hook to access auth store with React 19 optimization
+ * Uses individual selectors to avoid getSnapshot warnings
+ */
 export function useAuth() {
+  // State selectors
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isLoading = useAuthStore((s) => s.isLoading);
   const error = useAuthStore((s) => s.error);
+  const twoFactorEnabled = useAuthStore((s) => s.twoFactorEnabled);
 
-  // actions
+  // Action selectors
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
   const setLoading = useAuthStore((s) => s.setLoading);
   const setError = useAuthStore((s) => s.setError);
+  const setTwoFactorEnabled = useAuthStore((s) => s.setTwoFactorEnabled);
   const login = useAuthStore((s) => s.login);
-  const register = useAuthStore((s) => s.register);
   const logout = useAuthStore((s) => s.logout);
   const checkAuth = useAuthStore((s) => s.checkAuth);
   const fetchProfile = useAuthStore((s) => s.fetchProfile);
   const clearError = useAuthStore((s) => s.clearError);
 
-  // Inicializa el estado de autenticación al primer uso
+  // Initialize auth state on mount
   useEffect(() => {
     checkAuth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {
+    // State
     user,
     isAuthenticated,
     isLoading,
     error,
+    twoFactorEnabled,
+
+    // Actions
     setUser,
     setTokens,
     setLoading,
     setError,
+    setTwoFactorEnabled,
     login,
-    register,
     logout,
     checkAuth,
     fetchProfile,

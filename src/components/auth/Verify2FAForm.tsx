@@ -5,95 +5,139 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 import Button from '@/src/components/ui/Button';
+import FormError from '@/src/components/ui/FormError';
 import { cn, formatZodErrors } from '@/src/lib/utils';
-import { showToast } from '@/src/lib/toast';
-import authService from '@/src/services/authService';
 import { ROUTES } from '@/src/lib/constants';
+import authService from '@/src/services/authService';
 import useAuth from '@/src/hooks/useAuth';
+import ErrorBoundary from '@/src/components/ui/ErrorBoundary';
 
-const totpSchema = z.object({
+const TOTP_SCHEMA = z.object({
   totpCode: z
     .string()
-    .min(6, 'El código debe tener 6 dígitos')
-    .max(6, 'El código debe tener 6 dígitos')
-    .regex(/^\d+$/, 'El código debe contener solo números'),
+    .length(6, 'El código debe tener exactamente 6 dígitos')
+    .regex(/^\d+$/, 'El código solo debe contener números'),
 });
 
-type TotpValues = z.infer<typeof totpSchema>;
+type TotpValues = z.infer<typeof TOTP_SCHEMA>;
 
-const initialValues: TotpValues = {
+const INITIAL_VALUES: TotpValues = {
   totpCode: '',
 };
 
-export default function Verify2FAForm() {
-  const [values, setValues] = React.useState<TotpValues>(initialValues);
+function Verify2FAFormContent() {
+  const [values, setValues] = React.useState<TotpValues>(INITIAL_VALUES);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [generalError, setGeneralError] = React.useState<string>('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { setTokens } = useAuth();
+  const { setTokens, fetchProfile } = useAuth();
 
-  // Recuperar email y password desde query params (pasados por LoginForm)
-  const email = searchParams.get('email');
-  const password = searchParams.get('password');
-  const next = searchParams.get('next');
+  const email = React.useMemo(() => sessionStorage.getItem('temp_2fa_email'), []);
+  const password = React.useMemo(() => sessionStorage.getItem('temp_2fa_password'), []);
 
   React.useEffect(() => {
-    // Si no hay credenciales, redirigir al login
     if (!email || !password) {
-      showToast.error('Sesión expirada. Inicia sesión de nuevo.');
       router.replace(ROUTES.LOGIN);
     }
   }, [email, password, router]);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    // Solo permitir dígitos y máximo 6 caracteres
-    if (/^\d*$/.test(value) && value.length <= 6) {
-      setValues((prev) => ({ ...prev, [name]: value }));
-    }
-  }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+    // Clear errors when user starts typing
+    setGeneralError('');
     setErrors({});
 
-    const parse = totpSchema.safeParse(values);
-    if (!parse.success) {
-      setErrors(formatZodErrors(parse.error));
-      return;
+    // Only allow digits and max 6 characters
+    if (/^\d{0,6}$/.test(value)) {
+      setValues((prev) => ({ ...prev, [name]: value }));
     }
+  }, []);
 
-    if (!email || !password) {
-      showToast.error('Faltan credenciales. Vuelve a iniciar sesión.');
-      router.replace(ROUTES.LOGIN);
-      return;
-    }
+  const handleSubmit = React.useCallback(
+    async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      setErrors({});
+      setGeneralError('');
 
-    try {
-      setIsSubmitting(true);
-      const result = await authService.loginWith2FA(email, password, values.totpCode);
+      // Validate TOTP code
+      const parse = TOTP_SCHEMA.safeParse(values);
+      if (!parse.success) {
+        setErrors(formatZodErrors(parse.error));
+        return;
+      }
 
-      // Propagar tokens al store
-      setTokens({ accessToken: result.accessToken, refreshToken: result.refreshToken });
+      if (!email || !password) {
+        setGeneralError('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        setTimeout(() => router.replace(ROUTES.LOGIN), 2000);
+        return;
+      }
 
-      showToast.success('Verificación exitosa');
-      // Redirigir al destino deseado o al dashboard
-      router.push(next || ROUTES.DASHBOARD);
-    } catch (_err) {
-      showToast.error('Código incorrecto o expirado');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
+      try {
+        setIsSubmitting(true);
+        const result = await authService.loginWith2FA(email, password, values.totpCode);
 
-  // Si faltan credenciales, no renderizar el form (el useEffect redirigirá)
+        // Clear temporary credentials
+        sessionStorage.removeItem('temp_2fa_email');
+        sessionStorage.removeItem('temp_2fa_password');
+
+        // Set tokens and fetch profile
+        setTokens({
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        });
+
+        try {
+          await fetchProfile();
+        } catch (error) {
+          console.error('Failed to fetch profile:', error);
+        }
+
+        const next = searchParams.get('next');
+        router.push(next || ROUTES.DASHBOARD);
+      } catch (err) {
+        const error = err as {
+          message?: string;
+          response?: { data?: { message?: string | string[] }; status?: number };
+        };
+
+        const status = error.response?.status;
+        const rawMessage = error.response?.data?.message;
+
+        let errorMessage = 'Error al verificar el código. Por favor, intenta nuevamente.';
+
+        if (status === 400 || status === 401) {
+          errorMessage = 'Código incorrecto o expirado. Verifica e intenta nuevamente.';
+        } else if (status === 429) {
+          errorMessage = 'Demasiados intentos. Por favor, espera unos minutos.';
+        } else if (rawMessage) {
+          errorMessage = Array.isArray(rawMessage) ? rawMessage.join('. ') : rawMessage;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        setGeneralError(errorMessage);
+        setValues(INITIAL_VALUES); // Clear input on error
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [values, email, password, searchParams, setTokens, fetchProfile, router]
+  );
+
   if (!email || !password) {
     return null;
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+      {/* General Error Message */}
+      <FormError message={generalError} />
+
+      {/* TOTP Code Input */}
       <div className="space-y-1">
         <label htmlFor="totpCode" className="block text-sm font-medium text-slate-700">
           Código de autenticación
@@ -107,14 +151,17 @@ export default function Verify2FAForm() {
           placeholder="000000"
           value={values.totpCode}
           onChange={handleChange}
+          disabled={isSubmitting}
+          maxLength={6}
+          autoFocus
           className={cn(
-            'block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-center font-mono text-2xl tracking-widest text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-slate-600 focus:ring-2 focus:ring-slate-600 focus:outline-none',
-            errors.totpCode && 'border-red-500 focus:border-red-500 focus:ring-red-500'
+            'block w-full rounded-md border bg-white px-3 py-3 text-center font-mono text-2xl tracking-widest text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus:ring-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+            errors.totpCode || generalError
+              ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+              : 'border-slate-300 focus:border-slate-600 focus:ring-slate-600'
           )}
           aria-invalid={!!errors.totpCode}
           aria-describedby={errors.totpCode ? 'totpCode-error' : undefined}
-          maxLength={6}
-          autoFocus
         />
         {errors.totpCode && (
           <p id="totpCode-error" className="mt-1 text-xs text-red-600" role="alert">
@@ -122,26 +169,36 @@ export default function Verify2FAForm() {
           </p>
         )}
         <p className="mt-2 text-xs text-slate-500">
-          Abre tu app autenticadora (Google Authenticator, Authy, etc.) y copia el código de 6
-          dígitos.
+          Abre tu app autenticadora y copia el código de 6 dígitos
         </p>
       </div>
 
+      {/* Submit Button */}
       <Button type="submit" fullWidth disabled={isSubmitting || values.totpCode.length !== 6}>
         {isSubmitting ? 'Verificando…' : 'Verificar código'}
       </Button>
 
+      {/* Divider */}
       <div className="flex items-center gap-2">
         <div className="h-px flex-1 bg-slate-200" />
         <span className="text-xs text-slate-500">¿Problemas para acceder?</span>
         <div className="h-px flex-1 bg-slate-200" />
       </div>
 
+      {/* Back to Login Link */}
       <Link href={ROUTES.LOGIN} className="block">
         <Button type="button" variant="ghost" fullWidth>
           Volver al inicio de sesión
         </Button>
       </Link>
     </form>
+  );
+}
+
+export default function Verify2FAForm() {
+  return (
+    <ErrorBoundary>
+      <Verify2FAFormContent />
+    </ErrorBoundary>
   );
 }

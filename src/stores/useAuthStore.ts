@@ -1,26 +1,23 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, ApiError } from '@/src/lib/types';
-import { AUTH_CONFIG } from '@/src/lib/constants';
+import { AUTH_CONFIG, ROUTES } from '@/src/lib/constants'; // ← ADDED ROUTES
 import { getLocalStorage, setLocalStorage, removeLocalStorage } from '@/src/lib/utils';
 import { setAuthToken, removeAuthToken } from '@/src/lib/apiClient';
 import authService, { type LoginResult } from '@/src/services/authService';
 
-/**
- * Auth Store State
- */
+// ============================================
+// STATE & ACTIONS INTERFACE
+// ============================================
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  // 2FA status cached client-side; null means unknown (not yet fetched/derived)
-  twoFactorEnabled: boolean | null;
+  twoFactorEnabled: boolean | null; // null = unknown, not yet fetched
 }
 
-/**
- * Auth Store Actions
- */
 interface AuthActions {
   setUser: (user: User | null) => void;
   setTokens: (tokens: { accessToken: string; refreshToken?: string }) => void;
@@ -28,7 +25,6 @@ interface AuthActions {
   setError: (error: string | null) => void;
   setTwoFactorEnabled: (enabled: boolean | null) => void;
   login: (payload: { email: string; password: string }) => Promise<LoginResult>;
-  register: () => Promise<never>;
   logout: () => Promise<void>;
   checkAuth: () => void;
   fetchProfile: () => Promise<void>;
@@ -37,29 +33,32 @@ interface AuthActions {
 
 type AuthStore = AuthState & AuthActions;
 
-/**
- * IMPORTANT: This is a base authentication store.
- * Adjust the login/register functions to match YOUR NestJS backend API endpoints and response structure.
- *
- * Example adjustments:
- * - Change endpoint paths ('/auth/login', '/auth/register')
- * - Modify response type based on your backend (e.g., response.data.user or just response.user)
- * - Add/remove fields from RegisterData based on your backend requirements
- * - Handle additional auth states (e.g., email verification, 2FA)
- */
+// ============================================
+// ZUSTAND STORE
+// ============================================
+
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
-      // Initial state
+      // ========== INITIAL STATE ==========
       user: null,
       isAuthenticated: false,
       isLoading: true,
       error: null,
       twoFactorEnabled: null,
 
-      // Actions
+      // ========== ACTIONS ==========
+
+      /**
+       * Set user and sync with localStorage
+       */
       setUser: (user) => {
-        set({ user, isAuthenticated: !!user });
+        set({
+          user,
+          isAuthenticated: !!user,
+          twoFactorEnabled: user?.twoFactorEnabled ?? null,
+        });
+
         if (user) {
           setLocalStorage(AUTH_CONFIG.USER_KEY, user);
         } else {
@@ -67,57 +66,80 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
+      /**
+       * Set JWT tokens in both apiClient and localStorage
+       */
       setTokens: (tokens) => {
         setAuthToken(tokens.accessToken);
+
         if (tokens.refreshToken) {
           setLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY, tokens.refreshToken);
         }
+
         set({ isAuthenticated: true });
       },
 
+      /**
+       * Set loading state
+       */
       setLoading: (loading) => set({ isLoading: loading }),
 
+      /**
+       * Set error message
+       */
       setError: (error) => set({ error }),
 
+      /**
+       * Set 2FA enabled status
+       */
       setTwoFactorEnabled: (enabled) => set({ twoFactorEnabled: enabled }),
 
       /**
-       * Login action (adapted to backend that may require 2FA)
+       * Login with email and password
+       * Returns LoginResult (may require 2FA)
        */
       login: async ({ email, password }) => {
         try {
           set({ isLoading: true, error: null });
+
           const result = await authService.login(email, password);
 
+          // If 2FA is required, don't set tokens yet
           if ('requires2FA' in result && result.requires2FA) {
             set({ isLoading: false });
             return result;
           }
 
-          // Persist and mark authenticated
-          get().setTokens({ accessToken: result.accessToken, refreshToken: result.refreshToken });
+          // No 2FA required - set tokens and mark authenticated
+          get().setTokens({
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken,
+          });
+
           set({ isLoading: false });
           return result;
         } catch (error) {
           const apiError = error as ApiError;
-          set({ error: apiError.message || 'Error al iniciar sesión', isLoading: false });
+          set({
+            error: apiError.message || 'Error al iniciar sesión',
+            isLoading: false,
+          });
           throw error;
         }
       },
 
-      // Placeholder: implement register when backend contract is defined
-      register: async () => {
-        throw new Error('Not implemented');
-      },
-
       /**
-       * Logout action
+       * Logout - clear tokens and reset state
        */
       logout: async () => {
         try {
           set({ isLoading: true });
           await authService.logout();
+        } catch (error) {
+          // Log error but continue with cleanup
+          console.error('Logout error:', error);
         } finally {
+          // Always clear local data even if API call fails
           removeAuthToken();
           removeLocalStorage(AUTH_CONFIG.USER_KEY);
           removeLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY);
@@ -130,18 +152,22 @@ export const useAuthStore = create<AuthStore>()(
             twoFactorEnabled: null,
           });
 
+          // Redirect to login
           if (typeof window !== 'undefined') {
-            window.location.href = '/login';
+            window.location.href = ROUTES.LOGIN;
           }
         }
       },
 
       /**
-       * Check authentication on app load
+       * Check if user is authenticated on app load
+       * Does NOT fetch profile, just checks for token presence
        */
       checkAuth: () => {
         set({ isLoading: true });
+
         const token = getLocalStorage<string | null>(AUTH_CONFIG.TOKEN_KEY, null);
+
         if (token) {
           set({ isAuthenticated: true, isLoading: false });
         } else {
@@ -150,25 +176,36 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       /**
-       * Fetch user profile from backend and update store
+       * Fetch user profile from backend
+       * Updates user object and 2FA status
        */
       fetchProfile: async () => {
         try {
           set({ isLoading: true });
+
           const profile = await authService.getProfile();
+
           get().setUser(profile);
-          set({ isLoading: false });
         } catch (error) {
           const apiError = error as ApiError;
-          set({ error: apiError.message || 'Error al cargar perfil', isLoading: false });
+          set({
+            error: apiError.message || 'Error al cargar perfil',
+            isLoading: false,
+          });
           throw error;
+        } finally {
+          set({ isLoading: false });
         }
       },
 
+      /**
+       * Clear error message
+       */
       clearError: () => set({ error: null }),
     }),
     {
       name: 'auth-storage',
+      // Only persist user, isAuthenticated, and twoFactorEnabled
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
