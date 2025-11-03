@@ -1,7 +1,9 @@
 // ==================== API CONFIGURATION ====================
 
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
+  // Use same-origin '/api' by default and rely on Next.js rewrites to proxy to the backend.
+  // Override with NEXT_PUBLIC_API_URL in environments where a direct URL is desired.
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || '/api',
   TIMEOUT: 30000, // 30 seconds
 } as const;
 
@@ -24,10 +26,12 @@ export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   REGISTER: '/register',
+  VERIFY_2FA: '/verify-2fa',
 
   // Protected routes - ADD YOUR ROUTES HERE
   DASHBOARD: '/dashboard',
   PROFILE: '/profile',
+  SETUP_2FA: '/profile/setup-2fa',
 
   // Admin routes (if needed)
   ADMIN: '/admin',

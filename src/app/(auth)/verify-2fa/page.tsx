@@ -1,8 +1,8 @@
 'use client';
 
-import LoginForm from '@/src/components/auth/LoginForm';
+import Verify2FAForm from '@/src/components/auth/Verify2FAForm';
 
-export default function LoginPage() {
+export default function Verify2FAPage() {
   return (
     <main className="min-h-dvh bg-white">
       <div className="mx-auto flex min-h-dvh w-full max-w-7xl items-center justify-center px-4">
@@ -18,13 +18,13 @@ export default function LoginPage() {
                 height={40}
               />
             </div>
-            <h1 className="text-2xl font-semibold text-slate-900">Bienvenido de nuevo</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Verificación en dos pasos</h1>
             <p className="mt-1 text-sm text-slate-600">
-              Introduce tus credenciales para acceder a tu cuenta.
+              Introduce el código de 6 dígitos de tu aplicación autenticadora.
             </p>
           </div>
 
-          <LoginForm />
+          <Verify2FAForm />
         </div>
       </div>
     </main>
