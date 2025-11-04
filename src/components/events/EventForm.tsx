@@ -28,12 +28,21 @@ export default function EventForm({ initialData, onSubmit, onCancel, isLoading }
   const { categories, fetchCategories } = useCategoryStore();
   const { venues, fetchVenues } = useVenueStore();
 
+  const getDateValue = (isoDate?: string) => {
+    if (!isoDate) return '';
+    try {
+      return isoDate.split('T')[0];
+    } catch {
+      return '';
+    }
+  };
+
   const [values, setValues] = React.useState({
     name: initialData?.name || '',
     description: initialData?.description || '',
-    date: initialData?.date ? initialData.date.split('T')[0] : '',
-    venueId: initialData?.venue.id || '',
-    categoryId: initialData?.category.id || '',
+    date: getDateValue(initialData?.date),
+    venueId: initialData?.venue?.id || '',
+    categoryId: initialData?.category?.id || '',
   });
 
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -64,8 +73,14 @@ export default function EventForm({ initialData, onSubmit, onCancel, isLoading }
       return;
     }
 
+    // Convert date to full ISO string before submitting
+    const dataToSend = {
+      ...parse.data,
+      date: `${parse.data.date}T00:00:00.000Z`,
+    };
+
     try {
-      await onSubmit(parse.data);
+      await onSubmit(dataToSend);
     } catch {
       setGeneralError('Error al guardar el evento. Intenta nuevamente.');
     }

@@ -62,13 +62,26 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
       const response = await eventService.getEvents(params);
 
-      set({
-        events: response.data,
-        totalPages: response.meta.totalPages,
-        currentPage: response.meta.currentPage,
-        totalItems: response.meta.totalItems,
-        isLoading: false,
-      });
+      // Handle both paginated and non-paginated responses
+      if (Array.isArray(response)) {
+        // Backend returned a simple array
+        set({
+          events: response,
+          totalPages: 1,
+          currentPage: 1,
+          totalItems: response.length,
+          isLoading: false,
+        });
+      } else {
+        // Backend returned a paginated object
+        set({
+          events: response.data,
+          totalPages: response.meta.totalPages,
+          currentPage: response.meta.currentPage,
+          totalItems: response.meta.totalItems,
+          isLoading: false,
+        });
+      }
     } catch (error) {
       const apiError = error as ApiError;
       set({

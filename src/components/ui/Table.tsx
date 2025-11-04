@@ -67,7 +67,7 @@ export default function Table<T extends Record<string, any>>({
   }
 
   // Empty state
-  if (data.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <div className={cn('overflow-x-auto rounded-lg border border-slate-200', className)}>
         <table className="w-full">

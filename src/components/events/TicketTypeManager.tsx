@@ -21,7 +21,7 @@ interface TicketTypeManagerProps {
   tickets: TicketType[];
 }
 
-export default function TicketTypeManager({ eventId, tickets }: TicketTypeManagerProps) {
+export default function TicketTypeManager({ eventId, tickets = [] }: TicketTypeManagerProps) {
   const { createTicketType, updateTicketType, deleteTicketType } = useEventStore();
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);

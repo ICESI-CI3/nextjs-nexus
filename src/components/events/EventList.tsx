@@ -62,7 +62,7 @@ export default function EventList({
         render: (event) => (
           <div>
             <p className="font-semibold text-slate-800">{event.name}</p>
-            <p className="text-xs text-slate-500">{event.category.name}</p>
+            <p className="text-xs text-slate-500">{event.category?.name ?? 'Sin categoría'}</p>
           </div>
         ),
       },

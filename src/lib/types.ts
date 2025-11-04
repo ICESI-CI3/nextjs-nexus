@@ -180,7 +180,7 @@ export interface TicketType {
 /**
  * Event Status
  */
-export type EventStatus = 'active' | 'inactive' | 'cancelled';
+export type EventStatus = 'active' | 'inactive' | 'cancelled' | 'draft' | 'pre_sale';
 
 /**
  * Event

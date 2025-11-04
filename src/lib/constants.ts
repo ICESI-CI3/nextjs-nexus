@@ -38,9 +38,13 @@ export const ROUTES = {
 
   EVENTS: '/events',
   EVENT_DETAIL: (id: string) => `/events/${id}`,
-  EVENT_CREATE: '/events/create',
-  EVENT_EDIT: (id: string) => `/events/${id}/edit`,
-  EVENT_TICKETS: (id: string) => `/events/${id}/tickets`,
+
+  // Admin event routes
+  ADMIN_EVENTS: '/admin/events',
+  ADMIN_EVENT_CREATE: '/admin/events/create',
+  ADMIN_EVENT_EDIT: (id: string) => `/admin/events/${id}/edit`,
+  ADMIN_EVENT_TICKETS: (id: string) => `/admin/events/${id}/tickets`,
+
   ADMIN_CATEGORIES: '/admin/categories',
   ADMIN_VENUES: '/admin/venues',
 

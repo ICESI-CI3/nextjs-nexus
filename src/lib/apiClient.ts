@@ -155,52 +155,52 @@ apiClient.interceptors.response.use(
  * Generic GET request
  */
 export async function get<T>(url: string, params?: Record<string, unknown>): Promise<T> {
-  const response = await apiClient.get<ApiResponse<T>>(url, { params });
-  return response.data.data;
+  const response = await apiClient.get<T>(url, { params });
+  return response.data;
 }
 
 /**
  * Generic POST request
  */
 export async function post<T, D = unknown>(url: string, data?: D): Promise<T> {
-  const response = await apiClient.post<ApiResponse<T>>(url, data);
-  return response.data.data;
+  const response = await apiClient.post<T>(url, data);
+  return response.data;
 }
 
 /**
  * Generic PUT request
  */
 export async function put<T, D = unknown>(url: string, data?: D): Promise<T> {
-  const response = await apiClient.put<ApiResponse<T>>(url, data);
-  return response.data.data;
+  const response = await apiClient.put<T>(url, data);
+  return response.data;
 }
 
 /**
  * Generic PATCH request
  */
 export async function patch<T, D = unknown>(url: string, data?: D): Promise<T> {
-  const response = await apiClient.patch<ApiResponse<T>>(url, data);
-  return response.data.data;
+  const response = await apiClient.patch<T>(url, data);
+  return response.data;
 }
 
 /**
  * Generic DELETE request
  */
 export async function del<T>(url: string): Promise<T> {
-  const response = await apiClient.delete<ApiResponse<T>>(url);
-  return response.data.data;
+  const response = await apiClient.delete<T>(url);
+  return response.data;
 }
 
 /**
  * Upload file with multipart/form-data
  */
 export async function uploadFile<T>(url: string, formData: FormData): Promise<T> {
-  const response = await apiClient.post<ApiResponse<T>>(url, formData, {
+  const response = await apiClient.post<T>(url, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   });
-  return response.data.data;
+  return response.data;
 }
 
 /**

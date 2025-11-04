@@ -77,14 +77,14 @@ async function createTicketType(eventId: string, data: CreateTicketTypeDTO): Pro
  * Update ticket type
  */
 async function updateTicketType(typeId: string, data: UpdateTicketTypeDTO): Promise<TicketType> {
-  return patch<TicketType, UpdateTicketTypeDTO>(`/events/ticket-types/${typeId}`, data);
+  return patch<TicketType, UpdateTicketTypeDTO>(`/ticket-types/${typeId}`, data);
 }
 
 /**
  * Delete ticket type
  */
 async function deleteTicketType(typeId: string): Promise<void> {
-  return del<void>(`/events/ticket-types/${typeId}`);
+  return del<void>(`/ticket-types/${typeId}`);
 }
 
 const eventService = {

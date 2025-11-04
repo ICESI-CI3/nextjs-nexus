@@ -21,9 +21,11 @@ export default function EventCard({
   onDelete,
   onManageTickets,
 }: EventCardProps) {
-  const minPrice = event.ticketTypes.length
-    ? Math.min(...event.ticketTypes.map((t) => t.price))
-    : 0;
+  // Safely handle potentially missing nested data
+  const ticketTypes = event.ticketTypes ?? [];
+  const minPrice = ticketTypes.length ? Math.min(...ticketTypes.map((t) => t.price)) : 0;
+  const venueName = event.venue?.name ?? 'Lugar por confirmar';
+  const categoryName = event.category?.name ?? 'Sin categoría';
 
   return (
     <div className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
@@ -76,7 +78,7 @@ export default function EventCard({
                 d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
               />
             </svg>
-            <span>{event.venue.name}</span>
+            <span>{venueName}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -93,7 +95,7 @@ export default function EventCard({
                 d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
               />
             </svg>
-            <span>{event.category.name}</span>
+            <span>{categoryName}</span>
           </div>
 
           {minPrice > 0 && (
