@@ -9,7 +9,7 @@ import ConfirmDialog from '@/src/components/ui/ConfirmDialog';
 import { useEventStore } from '@/src/stores/useEventStore';
 import useRequireAuth from '@/src/hooks/useRequireAuth';
 import { ROUTES } from '@/src/lib/constants';
-import type { EventStatus } from '@/src/lib/types';
+import { EventStatus } from '@/src/lib/types';
 
 export default function AdminEventsPage() {
   const router = useRouter();
@@ -27,6 +27,12 @@ export default function AdminEventsPage() {
 
   const [deleteEventId, setDeleteEventId] = React.useState<string | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
+
+  const [statusChangeInfo, setStatusChangeInfo] = React.useState<{
+    id: string;
+    status: EventStatus;
+  } | null>(null);
+  const [isSubmittingStatus, setIsSubmittingStatus] = React.useState(false);
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -73,12 +79,22 @@ export default function AdminEventsPage() {
     }
   };
 
-  const handleChangeStatus = async (id: string, status: EventStatus) => {
+  const handleChangeStatus = (id: string, status: EventStatus) => {
+    setStatusChangeInfo({ id, status });
+  };
+
+  const confirmStatusChange = async () => {
+    if (!statusChangeInfo) return;
+
     try {
-      await updateEventStatus(id, status);
+      setIsSubmittingStatus(true);
+      await updateEventStatus(statusChangeInfo.id, statusChangeInfo.status);
+      toast.success('Estado del evento actualizado con éxito');
+      setStatusChangeInfo(null);
     } catch {
       toast.error('Error al cambiar el estado del evento');
-      throw new Error('Failed to update status');
+    } finally {
+      setIsSubmittingStatus(false);
     }
   };
 
@@ -124,6 +140,21 @@ export default function AdminEventsPage() {
         confirmText="Eliminar"
         variant="danger"
         isLoading={isDeleting}
+      />
+
+      <ConfirmDialog
+        isOpen={!!statusChangeInfo}
+        onClose={() => setStatusChangeInfo(null)}
+        onConfirm={confirmStatusChange}
+        title={
+          statusChangeInfo?.status === EventStatus.ACTIVE ? 'Aprobar Evento' : 'Rechazar Evento'
+        }
+        message={`¿Estás seguro de que deseas ${
+          statusChangeInfo?.status === EventStatus.ACTIVE ? 'aprobar' : 'rechazar'
+        } este evento?`}
+        confirmText={statusChangeInfo?.status === EventStatus.ACTIVE ? 'Aprobar' : 'Rechazar'}
+        variant={statusChangeInfo?.status === EventStatus.ACTIVE ? 'success' : 'danger'}
+        isLoading={isSubmittingStatus}
       />
     </div>
   );

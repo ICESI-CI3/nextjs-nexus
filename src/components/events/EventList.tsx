@@ -20,7 +20,7 @@ interface EventListProps {
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   onManageTickets?: (id: string) => void;
-  onChangeStatus?: (id: string, status: EventStatus) => Promise<void>;
+  onChangeStatus?: (id: string, status: EventStatus) => void;
   emptyMessage?: string;
 }
 
@@ -38,19 +38,9 @@ export default function EventList({
   onChangeStatus,
   emptyMessage = 'No hay eventos disponibles',
 }: EventListProps) {
-  const [isSubmitting, setIsSubmitting] = React.useState<string | null>(null);
-
-  const handleStatusChange = async (id: string, status: EventStatus) => {
+  const handleStatusChange = (id: string, status: EventStatus) => {
     if (!onChangeStatus) return;
-    setIsSubmitting(`${id}-${status}`);
-    try {
-      await onChangeStatus(id, status);
-      toast.success(`Estado del evento actualizado a ${status}`);
-    } catch {
-      // Error toast is likely handled by the store
-    } finally {
-      setIsSubmitting(null);
-    }
+    onChangeStatus(id, status);
   };
 
   // TABLE VIEW (FOR ADMIN DASHBOARD)
@@ -85,24 +75,22 @@ export default function EventList({
         <div className="flex items-center justify-end gap-2">
           {/* Status Change Actions */}
           {event.status === EventStatus.DRAFT && (
-            <Button
-              size="sm"
-              onClick={() => handleStatusChange(event.id, EventStatus.ACTIVE)}
-              disabled={isSubmitting === `${event.id}-${EventStatus.ACTIVE}`}
-            >
-              {isSubmitting === `${event.id}-${EventStatus.ACTIVE}` ? 'Activando...' : 'Activar'}
-            </Button>
-          )}
-          {event.status === EventStatus.ACTIVE && (
-            <Button
-              size="sm"
-              onClick={() => handleStatusChange(event.id, EventStatus.DRAFT)}
-              disabled={isSubmitting === `${event.id}-${EventStatus.DRAFT}`}
-            >
-              {isSubmitting === `${event.id}-${EventStatus.DRAFT}`
-                ? 'Desactivando...'
-                : 'Desactivar'}
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="success"
+                onClick={() => handleStatusChange(event.id, EventStatus.ACTIVE)}
+              >
+                Aprobar
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => handleStatusChange(event.id, EventStatus.CANCELLED)}
+              >
+                Rechazar
+              </Button>
+            </>
           )}
 
           {/* Other Actions */}

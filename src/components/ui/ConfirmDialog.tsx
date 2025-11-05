@@ -12,7 +12,7 @@ interface ConfirmDialogProps {
   message: string;
   confirmText?: string;
   cancelText?: string;
-  variant?: 'danger' | 'warning' | 'info';
+  variant?: 'danger' | 'warning' | 'info' | 'success';
   isLoading?: boolean;
 }
 
@@ -28,9 +28,10 @@ export default function ConfirmDialog({
   isLoading = false,
 }: ConfirmDialogProps) {
   const variantStyles = {
-    danger: 'bg-red-600 hover:bg-red-700',
+    danger: 'bg-slate-500 hover:bg-slate-600',
     warning: 'bg-amber-600 hover:bg-amber-700',
     info: 'bg-blue-600 hover:bg-blue-700',
+    success: 'bg-blue-600 hover:bg-blue-700',
   };
 
   return (

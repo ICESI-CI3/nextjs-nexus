@@ -6,6 +6,7 @@
  */
 
 import { useEffect } from 'react';
+import { EventStatus } from '@/src/lib/types';
 import { useEventStore } from '@/src/stores/useEventStore';
 import EventCard from '@/src/components/events/EventCard';
 import { showToast } from '@/src/lib/toast';
@@ -15,7 +16,7 @@ export default function EventsPage() {
 
   useEffect(() => {
     // Fetch events on mount
-    fetchEvents().catch(() => {
+    fetchEvents({ status: EventStatus.ACTIVE }).catch(() => {
       showToast.error('Error al cargar los eventos');
     });
 
@@ -60,7 +61,7 @@ export default function EventsPage() {
           <h3 className="mb-2 text-xl font-semibold text-red-900">Error al cargar eventos</h3>
           <p className="mb-6 text-red-700">{error}</p>
           <button
-            onClick={() => fetchEvents()}
+            onClick={() => fetchEvents({ status: EventStatus.ACTIVE })}
             className="rounded-md bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
           >
             Reintentar

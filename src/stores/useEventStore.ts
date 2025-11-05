@@ -195,7 +195,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
 
-      const event = await eventService.updateEvent(id, { status });
+      const event = await eventService.updateEventStatus(id, status);
 
       set((state) => ({
         events: state.events.map((e) => (e.id === id ? event : e)),
