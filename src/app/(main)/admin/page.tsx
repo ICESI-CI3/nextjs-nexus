@@ -6,6 +6,7 @@ import { useEventStore } from '@/src/stores/useEventStore';
 import { useCategoryStore } from '@/src/stores/useCategoryStore';
 import { useVenueStore } from '@/src/stores/useVenueStore';
 import { ROUTES } from '@/src/lib/constants';
+import { EventStatus } from '@/src/lib/types';
 
 interface StatCardProps {
   title: string;
@@ -102,7 +103,7 @@ export default function AdminDashboardPage() {
     fetchVenues().catch(() => {});
   }, [fetchEvents, fetchCategories, fetchVenues]);
 
-  const activeEvents = events.filter((e) => e.status === 'active').length;
+  const activeEvents = events.filter((e) => e.status === EventStatus.ACTIVE).length;
   const totalEvents = events.length;
 
   return (
