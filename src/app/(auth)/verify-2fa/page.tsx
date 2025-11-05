@@ -1,6 +1,8 @@
 'use client';
 
+import * as React from 'react';
 import Verify2FAForm from '@/src/components/auth/Verify2FAForm';
+import Image from 'next/image';
 
 export default function Verify2FAPage() {
   return (
@@ -10,7 +12,7 @@ export default function Verify2FAPage() {
           <div className="mb-6 flex flex-col items-center text-center">
             <div className="mb-3 flex items-center justify-center">
               {/* Logo oficial proporcionado por el equipo */}
-              <img
+              <Image
                 src="/logo.svg"
                 alt="TicketHub"
                 className="h-10 w-auto"
@@ -24,7 +26,9 @@ export default function Verify2FAPage() {
             </p>
           </div>
 
-          <Verify2FAForm />
+          <React.Suspense fallback={<div>Cargando...</div>}>
+            <Verify2FAForm />
+          </React.Suspense>
         </div>
       </div>
     </main>

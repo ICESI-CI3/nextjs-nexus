@@ -234,6 +234,7 @@ function Setup2FAPageContent() {
               </p>
               <div className="flex justify-center rounded-lg bg-slate-50 p-6">
                 {qrDataUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={qrDataUrl} alt="QR Code para 2FA" className="h-48 w-48" />
                 ) : (
                   <div className="flex h-48 w-48 items-center justify-center rounded-md border border-slate-200 bg-white text-sm text-slate-500">
