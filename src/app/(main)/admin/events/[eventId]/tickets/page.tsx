@@ -16,16 +16,16 @@ export default function ManageEventTicketsPage() {
 
   const { isAuthenticated, isLoading: authLoading } = useRequireAuth();
 
-  const { currentEvent, isLoading, fetchEventById } = useEventStore();
+  const { currentEvent, ticketTypes, isLoading, fetchEventWithTicketTypes } = useEventStore();
 
   React.useEffect(() => {
     if (isAuthenticated && eventId) {
-      fetchEventById(eventId).catch(() => {
-        toast.error('Error al cargar el evento');
+      fetchEventWithTicketTypes(eventId).catch(() => {
+        toast.error('Error al cargar el evento y los tickets');
         router.push(ROUTES.ADMIN + '/events');
       });
     }
-  }, [isAuthenticated, eventId, fetchEventById, router]);
+  }, [isAuthenticated, eventId, fetchEventWithTicketTypes, router]);
 
   const handleGoBack = () => {
     router.push(ROUTES.ADMIN + '/events');
@@ -66,7 +66,7 @@ export default function ManageEventTicketsPage() {
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <TicketTypeManager eventId={eventId} tickets={currentEvent.ticketTypes} />
+        <TicketTypeManager eventId={eventId} tickets={ticketTypes} />
       </div>
     </div>
   );

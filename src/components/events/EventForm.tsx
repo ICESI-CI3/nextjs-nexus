@@ -33,11 +33,12 @@ export default function EventForm({ initialData, onSubmit, onCancel, isLoading }
   } = useCategoryStore();
   const { venues, fetchVenues, error: venueError, isLoading: venuesLoading } = useVenueStore();
 
-  const getDateValue = (isoDate?: string) => {
-    if (!isoDate) return '';
+  const getDateValue = (date?: string | Date) => {
+    if (!date) return '';
     try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
       // Format to YYYY-MM-DDTHH:mm, required by datetime-local input
-      return isoDate.slice(0, 16);
+      return dateObj.toISOString().slice(0, 16);
     } catch {
       return '';
     }
@@ -198,7 +199,7 @@ export default function EventForm({ initialData, onSubmit, onCancel, isLoading }
             </option>
             {venues.map((venue) => (
               <option key={venue.id} value={venue.id}>
-                {venue.name} - Capacidad: {venue.capacity}
+                {venue.name} - Capacidad: {venue.maxCapacity}
               </option>
             ))}
           </select>

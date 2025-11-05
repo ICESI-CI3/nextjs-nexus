@@ -7,18 +7,19 @@ import type {
   Event,
   CreateEventDTO,
   UpdateEventDTO,
-  UpdateEventStatusDTO,
   TicketType,
   CreateTicketTypeDTO,
   UpdateTicketTypeDTO,
   ApiError,
   QueryParams,
+  EventStatus,
 } from '@/src/lib/types';
 import eventService from '@/src/services/eventService';
 
 interface EventState {
   events: Event[];
   currentEvent: Event | null;
+  ticketTypes: TicketType[];
   isLoading: boolean;
   error: string | null;
   totalPages: number;
@@ -29,9 +30,10 @@ interface EventState {
 interface EventActions {
   fetchEvents: (params?: QueryParams) => Promise<void>;
   fetchEventById: (id: string) => Promise<void>;
+  fetchEventWithTicketTypes: (id: string) => Promise<void>;
   createEvent: (data: CreateEventDTO) => Promise<Event>;
   updateEvent: (id: string, data: UpdateEventDTO) => Promise<Event>;
-  updateEventStatus: (id: string, status: UpdateEventStatusDTO) => Promise<Event>;
+  updateEventStatus: (id: string, status: EventStatus) => Promise<Event>;
   deleteEvent: (id: string) => Promise<void>;
   setCurrentEvent: (event: Event | null) => void;
   clearError: () => void;
@@ -53,6 +55,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
   // Initial state
   events: [],
   currentEvent: null,
+  ticketTypes: [],
   isLoading: false,
   error: null,
   totalPages: 1,
@@ -118,6 +121,31 @@ export const useEventStore = create<EventStore>((set, get) => ({
     }
   },
 
+  fetchEventWithTicketTypes: async (id) => {
+    try {
+      set({ isLoading: true, error: null });
+
+      // Fetch both event and ticket types in parallel
+      const [event, ticketTypes] = await Promise.all([
+        eventService.getEventById(id),
+        eventService.getTicketTypes(id),
+      ]);
+
+      set({
+        currentEvent: event,
+        ticketTypes,
+        isLoading: false,
+      });
+    } catch (error) {
+      const apiError = error as ApiError;
+      set({
+        error: apiError.message || 'Error al cargar el evento y tipos de tickets',
+        isLoading: false,
+      });
+      throw error;
+    }
+  },
+
   createEvent: async (data) => {
     try {
       set({ isLoading: true, error: null });
@@ -163,11 +191,11 @@ export const useEventStore = create<EventStore>((set, get) => ({
     }
   },
 
-  updateEventStatus: async (id, statusData) => {
+  updateEventStatus: async (id, status) => {
     try {
       set({ isLoading: true, error: null });
 
-      const event = await eventService.updateEventStatus(id, statusData);
+      const event = await eventService.updateEvent(id, { status });
 
       set((state) => ({
         events: state.events.map((e) => (e.id === id ? event : e)),
@@ -214,7 +242,9 @@ export const useEventStore = create<EventStore>((set, get) => ({
   // Ticket Types
   fetchTicketTypes: async (eventId) => {
     try {
-      return await eventService.getTicketTypes(eventId);
+      const ticketTypes = await eventService.getTicketTypes(eventId);
+      set({ ticketTypes });
+      return ticketTypes;
     } catch (error) {
       const apiError = error as ApiError;
       set({ error: apiError.message || 'Error al cargar tipos de tickets' });
@@ -226,16 +256,9 @@ export const useEventStore = create<EventStore>((set, get) => ({
     try {
       const ticketType = await eventService.createTicketType(eventId, data);
 
-      // Update current event if loaded
-      const current = get().currentEvent;
-      if (current && current.id === eventId) {
-        set({
-          currentEvent: {
-            ...current,
-            ticketTypes: [...(current.ticketTypes || []), ticketType],
-          },
-        });
-      }
+      set((state) => ({
+        ticketTypes: [...state.ticketTypes, ticketType],
+      }));
 
       return ticketType;
     } catch (error) {
@@ -249,18 +272,9 @@ export const useEventStore = create<EventStore>((set, get) => ({
     try {
       const ticketType = await eventService.updateTicketType(eventId, typeId, data);
 
-      // Update current event if loaded
-      const current = get().currentEvent;
-      if (current) {
-        set({
-          currentEvent: {
-            ...current,
-            ticketTypes: (current.ticketTypes || []).map((tt) =>
-              tt.id === typeId ? ticketType : tt
-            ),
-          },
-        });
-      }
+      set((state) => ({
+        ticketTypes: state.ticketTypes.map((tt) => (tt.id === typeId ? ticketType : tt)),
+      }));
 
       return ticketType;
     } catch (error) {
@@ -274,16 +288,9 @@ export const useEventStore = create<EventStore>((set, get) => ({
     try {
       await eventService.deleteTicketType(eventId, typeId);
 
-      // Update current event if loaded
-      const current = get().currentEvent;
-      if (current) {
-        set({
-          currentEvent: {
-            ...current,
-            ticketTypes: (current.ticketTypes || []).filter((tt) => tt.id !== typeId),
-          },
-        });
-      }
+      set((state) => ({
+        ticketTypes: state.ticketTypes.filter((tt) => tt.id !== typeId),
+      }));
     } catch (error) {
       const apiError = error as ApiError;
       set({ error: apiError.message || 'Error al eliminar tipo de ticket' });

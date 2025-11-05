@@ -58,7 +58,7 @@ export default function TicketTypeManager({ eventId, tickets = [] }: TicketTypeM
 
         description: ticket.description || '',
 
-        price: ticket.price,
+        price: Number(ticket.price),
 
         quantity: ticket.quantity,
       });
@@ -150,7 +150,7 @@ export default function TicketTypeManager({ eventId, tickets = [] }: TicketTypeM
       {/* Tickets List */}
 
       {tickets.length === 0 ? (
-        <div className="rounded-lg border-2 border-dashed border-slate-200 p-12 text-center">
+        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
           <p className="text-sm text-slate-500">No hay tipos de tickets configurados</p>
         </div>
       ) : (
@@ -166,24 +166,23 @@ export default function TicketTypeManager({ eventId, tickets = [] }: TicketTypeM
                 <p className="text-sm text-slate-600">{ticket.description}</p>
 
                 <p className="text-sm text-slate-600">
-                  {formatCurrency(ticket.price)} • {ticket.quantity} disponibles
+                  {formatCurrency(Number(ticket.price))} • {ticket.quantity} disponibles
                 </p>
               </div>
 
               <div className="flex gap-2">
-                <button
-                  onClick={() => handleOpenModal(ticket)}
-                  className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
-                >
+                <Button onClick={() => handleOpenModal(ticket)} variant="secondary" size="sm">
                   Editar
-                </button>
+                </Button>
 
-                <button
+                <Button
                   onClick={() => setDeleteTicketId(ticket.id)}
-                  className="rounded-md px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                  variant="secondary"
+                  size="sm"
+                  className="border-red-300 bg-white text-red-600 hover:bg-red-50 focus-visible:ring-red-300"
                 >
                   Eliminar
-                </button>
+                </Button>
               </div>
             </div>
           ))}
@@ -209,9 +208,10 @@ export default function TicketTypeManager({ eventId, tickets = [] }: TicketTypeM
               value={values.name}
               onChange={(e) => setValues({ ...values, name: e.target.value })}
               className={cn(
-                'mt-1 block w-full rounded-md border px-3 py-2 text-sm',
-
-                errors.name ? 'border-red-300' : 'border-slate-300'
+                'mt-1 block w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:ring-2 focus:outline-none',
+                errors.name
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                  : 'border-slate-300 focus:border-slate-600 focus:ring-slate-600'
               )}
             />
 
@@ -229,9 +229,10 @@ export default function TicketTypeManager({ eventId, tickets = [] }: TicketTypeM
               value={values.description}
               onChange={(e) => setValues({ ...values, description: e.target.value })}
               className={cn(
-                'mt-1 block w-full rounded-md border px-3 py-2 text-sm',
-
-                errors.description ? 'border-red-300' : 'border-slate-300'
+                'mt-1 block w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:ring-2 focus:outline-none',
+                errors.description
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                  : 'border-slate-300 focus:border-slate-600 focus:ring-slate-600'
               )}
             />
 
@@ -252,9 +253,10 @@ export default function TicketTypeManager({ eventId, tickets = [] }: TicketTypeM
               value={values.price}
               onChange={(e) => setValues({ ...values, price: Number(e.target.value) })}
               className={cn(
-                'mt-1 block w-full rounded-md border px-3 py-2 text-sm',
-
-                errors.price ? 'border-red-300' : 'border-slate-300'
+                'mt-1 block w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:ring-2 focus:outline-none',
+                errors.price
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                  : 'border-slate-300 focus:border-slate-600 focus:ring-slate-600'
               )}
             />
 
@@ -273,9 +275,10 @@ export default function TicketTypeManager({ eventId, tickets = [] }: TicketTypeM
               value={values.quantity}
               onChange={(e) => setValues({ ...values, quantity: Number(e.target.value) })}
               className={cn(
-                'mt-1 block w-full rounded-md border px-3 py-2 text-sm',
-
-                errors.quantity ? 'border-red-300' : 'border-slate-300'
+                'mt-1 block w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:ring-2 focus:outline-none',
+                errors.quantity
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                  : 'border-slate-300 focus:border-slate-600 focus:ring-slate-600'
               )}
             />
 

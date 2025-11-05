@@ -75,7 +75,7 @@ export default function AdminEventsPage() {
 
   const handleChangeStatus = async (id: string, status: EventStatus) => {
     try {
-      await updateEventStatus(id, { status });
+      await updateEventStatus(id, status);
     } catch {
       toast.error('Error al cambiar el estado del evento');
       throw new Error('Failed to update status');

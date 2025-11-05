@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { formatDate, formatCurrency } from '@/src/lib/utils';
 import EventStatusBadge from './EventStatusBadge';
+import Button from '@/src/components/ui/Button';
 import type { Event } from '@/src/lib/types';
 
 interface EventCardProps {
@@ -22,16 +23,16 @@ export default function EventCard({
 }: EventCardProps) {
   // Safely handle potentially missing nested data
   const ticketTypes = event.ticketTypes ?? [];
-  const minPrice = ticketTypes.length ? Math.min(...ticketTypes.map((t) => t.price)) : 0;
+  const minPrice = ticketTypes.length ? Math.min(...ticketTypes.map((t) => Number(t.price))) : 0;
   const venueName = event.venue?.name ?? 'Lugar por confirmar';
-  const categoryName = event.category?.name ?? 'Sin categoría';
+  const categoryName = event.category?.name ?? 'Sin categoria';
 
   return (
-    <div className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+    <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
       {/* Event Info */}
       <Link href={`/events/${event.id}`} className="block p-6">
         <div className="mb-3 flex items-start justify-between gap-3">
-          <h3 className="text-lg font-semibold text-slate-900 group-hover:text-slate-700">
+          <h3 className="text-lg font-semibold text-slate-900 group-hover:text-slate-900">
             {event.title}
           </h3>
           <EventStatusBadge status={event.status} />
@@ -110,28 +111,34 @@ export default function EventCard({
         <div className="border-t border-slate-200 bg-slate-50 px-6 py-3">
           <div className="flex gap-2">
             {onEdit && (
-              <button
+              <Button
                 onClick={() => onEdit(event.id)}
-                className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                variant="secondary"
+                size="sm"
+                className="flex-1"
               >
                 Editar
-              </button>
+              </Button>
             )}
             {onManageTickets && (
-              <button
+              <Button
                 onClick={() => onManageTickets(event.id)}
-                className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                variant="secondary"
+                size="sm"
+                className="flex-1"
               >
                 Tickets
-              </button>
+              </Button>
             )}
             {onDelete && (
-              <button
+              <Button
                 onClick={() => onDelete(event.id)}
-                className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                variant="secondary"
+                size="sm"
+                className="border-red-300 bg-white text-red-600 hover:bg-red-50 focus-visible:ring-red-300"
               >
                 Eliminar
-              </button>
+              </Button>
             )}
           </div>
         </div>

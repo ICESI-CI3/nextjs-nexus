@@ -1,33 +1,217 @@
-// ==================== AUTH & USER TYPES (BASE) ====================
+// ==================== ENUMS ====================
 
 /**
- * User type - ADJUST THIS based on your NestJS backend response
- * This is just a base example - modify according to your API
+ * Event status enum - matches backend EventStatus
  */
-export interface User {
-  id: string;
-  email: string;
-  twoFactorEnabled: boolean;
-  // Add other fields that your backend returns
-  [key: string]: unknown; // Allow additional properties
+export enum EventStatus {
+  DRAFT = 'DRAFT',
+  PRE_SALE = 'PRE_SALE',
+  ACTIVE = 'ACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  CANCELLED = 'CANCELLED',
+  FINISHED = 'FINISHED',
 }
 
 /**
- * Role type - ADJUST THIS based on your backend
+ * Purchase status enum - matches backend PurchaseStatus
+ */
+export enum PurchaseStatus {
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+  FAILED = 'FAILED',
+}
+
+/**
+ * Payment status enum - matches backend PaymentStatus
+ */
+export enum PaymentStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  IN_PROCESS = 'in_process',
+  REJECTED = 'rejected',
+  CANCELLED = 'cancelled',
+  REFUNDED = 'refunded',
+}
+
+// ==================== CORE ENTITIES ====================
+
+/**
+ * User type - matches backend ResponseUserDto
+ */
+export interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  twoFactorEnabled?: boolean;
+  createdAt: Date | string;
+  roleIds: string[];
+}
+
+/**
+ * Role type - matches backend ResponseRoleDto
  */
 export interface Role {
   id: string;
   name: string;
-  // Add permissions, description, etc. as needed
-  [key: string]: unknown;
+  description?: string;
+  permissionIds: string[];
 }
 
 /**
- * Auth tokens structure - ADJUST THIS based on your backend
+ * Permission type
+ */
+export interface Permission {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+/**
+ * Venue type - matches backend ResponseVenueDto
+ */
+export interface Venue {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  maxCapacity: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+/**
+ * Event category type - matches backend ResponseEventCategoryDto
+ */
+export interface EventCategory {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+/**
+ * Event type - matches backend ResponseEventDto
+ */
+export interface Event {
+  id: string;
+  title: string;
+  description?: string;
+  date: Date | string;
+  status: EventStatus;
+  category: EventCategory;
+  venue: Venue;
+  ticketTypes?: TicketType[];
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+// ==================== TICKET TYPES ====================
+
+/**
+ * Ticket type - matches backend ResponseTicketDto
+ */
+export interface Ticket {
+  id: string;
+  ticketCode: string;
+  price: number | string; // Can be string due to PostgreSQL decimal conversion
+  seat: string;
+  isValidated: boolean;
+}
+
+/**
+ * Ticket type (category) - matches backend ResponseTicketTypeDto
+ */
+export interface TicketType {
+  id: string;
+  name: string;
+  description?: string;
+  price: number | string; // Can be string due to PostgreSQL decimal conversion
+  quantity: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+// ==================== CART TYPES ====================
+
+/**
+ * Cart item type - matches backend ResponseCartItemDto
+ */
+export interface CartItem {
+  id: string;
+  ticketType: TicketType;
+  quantity: number;
+  unitPrice: number | string; // Can be string due to PostgreSQL decimal conversion
+  subtotal: number | string; // Can be string due to PostgreSQL decimal conversion
+  addedAt: Date | string;
+}
+
+/**
+ * Cart type - matches backend ResponseCartDto
+ */
+export interface Cart {
+  id: string;
+  event: Event;
+  items: CartItem[];
+  totalAmount: number | string; // Can be string due to PostgreSQL decimal conversion
+  expiresAt: Date | string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+// ==================== PURCHASE TYPES ====================
+
+/**
+ * Purchase type - matches backend ResponsePurchaseDto
+ */
+export interface Purchase {
+  id: string;
+  totalAmount: number | string; // Can be string due to PostgreSQL decimal conversion
+  status: PurchaseStatus;
+  purchaseDate: Date | string;
+  event: Event;
+  tickets: Ticket[];
+}
+
+// ==================== PAYMENT TYPES ====================
+
+/**
+ * Payment preference response - matches backend ResponsePreferenceDto
+ */
+export interface PaymentPreference {
+  preferenceId: string;
+  initPoint: string;
+  sandboxInitPoint: string;
+  cartId: string;
+}
+
+/**
+ * Payment type
+ */
+export interface Payment {
+  id: string;
+  mpPaymentId: string;
+  mpPreferenceId: string;
+  mpMerchantOrderId: string;
+  amount: number | string; // Can be string due to PostgreSQL decimal conversion
+  status: PaymentStatus;
+  paymentMethod: string;
+  paymentType: string;
+  statusDetail: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+// ==================== AUTH TYPES ====================
+
+/**
+ * Auth tokens structure
  */
 export interface AuthTokens {
   accessToken: string;
-  refreshToken?: string; // Optional if your backend uses it
+  refreshToken?: string;
 }
 
 /**
@@ -39,20 +223,54 @@ export interface LoginCredentials {
 }
 
 /**
- * Register data - ADJUST THIS based on your backend requirements
+ * Register data
  */
 export interface RegisterData {
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
-  // Add username, firstName, lastName, etc. as needed by your backend
-  [key: string]: unknown;
+}
+
+/**
+ * Login response
+ */
+export interface LoginResponse {
+  user: User;
+  accessToken: string;
+}
+
+// ==================== DTO TYPES (CREATE/UPDATE) ====================
+
+/**
+ * Add to cart DTO - matches backend AddToCartDto
+ */
+export interface AddToCartDto {
+  eventId: string;
+  ticketTypeId: string;
+  quantity: number;
+}
+
+/**
+ * Update cart item DTO
+ */
+export interface UpdateCartItemDto {
+  quantity: number;
+}
+
+/**
+ * Create purchase DTO - matches backend CreatePurchaseDto
+ */
+export interface CreatePurchaseDto {
+  eventId: string;
+  ticketTypeId: string;
+  quantity: number;
 }
 
 // ==================== API RESPONSE TYPES (GENERIC) ====================
 
 /**
  * Standard API response wrapper
- * Adjust this to match your NestJS backend response structure
  */
 export interface ApiResponse<T> {
   data: T;
@@ -62,7 +280,6 @@ export interface ApiResponse<T> {
 
 /**
  * Paginated response structure
- * Adjust this to match your NestJS pagination structure
  */
 export interface PaginatedResponse<T> {
   data: T[];
@@ -71,7 +288,6 @@ export interface PaginatedResponse<T> {
 
 /**
  * Pagination metadata
- * Adjust fields to match your backend pagination structure
  */
 export interface PaginationMeta {
   currentPage: number;
@@ -106,7 +322,7 @@ export interface SortParams {
 
 export interface FilterParams {
   search?: string;
-  [key: string]: unknown; // Allow any filter parameters
+  [key: string]: unknown;
 }
 
 export interface QueryParams extends PaginationParams, SortParams, FilterParams {}
@@ -139,63 +355,7 @@ export interface Notification {
   duration?: number;
 }
 
-// ==================== EVENT MANAGEMENT TYPES ====================
-
-/**
- * Event Category
- */
-export interface EventCategory {
-  id: string;
-  name: string;
-  description: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-/**
- * Venue
- */
-export interface Venue {
-  id: string;
-  name: string;
-  address: string;
-  capacity: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-/**
- * Ticket Type
- */
-export interface TicketType {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  quantity: number;
-  eventId: string;
-}
-
-/**
- * Event Status
- */
-export type EventStatus = 'active' | 'inactive' | 'cancelled' | 'draft' | 'pre_sale';
-
-/**
- * Event
- */
-export interface Event {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  status: EventStatus;
-  venue: Venue;
-  category: EventCategory;
-  ticketTypes: TicketType[];
-  createdAt?: string;
-  updatedAt?: string;
-}
+// ==================== EVENT MANAGEMENT DTOs ====================
 
 /**
  * Create Event DTO
@@ -217,13 +377,7 @@ export interface UpdateEventDTO {
   date?: string;
   venueId?: string;
   categoryId?: string;
-}
-
-/**
- * Update Event Status DTO
- */
-export interface UpdateEventStatusDTO {
-  status: EventStatus;
+  status?: EventStatus;
 }
 
 /**
@@ -268,7 +422,8 @@ export interface UpdateEventCategoryDTO {
 export interface CreateVenueDTO {
   name: string;
   address: string;
-  capacity: number;
+  city: string;
+  maxCapacity: number;
 }
 
 /**
@@ -277,47 +432,6 @@ export interface CreateVenueDTO {
 export interface UpdateVenueDTO {
   name?: string;
   address?: string;
-  capacity?: number;
+  city?: string;
+  maxCapacity?: number;
 }
-
-// ==================== EXAMPLES - DOMAIN-SPECIFIC TYPES ====================
-
-/**
- * IMPORTANT: The types below are just EXAMPLES for a ticketing system.
- * Delete these and create your own types based on YOUR backend API.
- *
- * Steps to create your types:
- * 1. Check your NestJS backend API responses
- * 2. Create interfaces that match the JSON structure
- * 3. Use the generic types above (ApiResponse, PaginatedResponse, etc.)
- */
-
-/*
-// Example: Event type (DELETE THIS and create your own)
-export interface Event {
-  id: string;
-  title: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-  // ... other fields from your backend
-}
-
-// Example: Ticket type (DELETE THIS and create your own)
-export interface Ticket {
-  id: string;
-  eventId: string;
-  code: string;
-  status: 'VALID' | 'USED' | 'CANCELLED';
-  // ... other fields from your backend
-}
-
-// Example: Create DTO (DELETE THIS and create your own)
-export interface CreateEventDTO {
-  title: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-  // ... fields required by your backend
-}
-*/

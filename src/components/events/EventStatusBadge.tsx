@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { cn } from '@/src/lib/utils';
-import type { EventStatus } from '@/src/lib/types';
+import { EventStatus } from '@/src/lib/types';
 
 interface EventStatusBadgeProps {
   status: EventStatus;
@@ -10,36 +10,40 @@ interface EventStatusBadgeProps {
 }
 
 const STATUS_CONFIG: Record<EventStatus, { label: string; className: string }> = {
-  active: {
+  [EventStatus.ACTIVE]: {
     label: 'Activo',
-    className: 'bg-green-100 text-green-800',
+    className: 'bg-green-200 text-green-800',
   },
-  inactive: {
-    label: 'Inactivo',
-    className: 'bg-slate-100 text-slate-600',
-  },
-  cancelled: {
+  [EventStatus.CANCELLED]: {
     label: 'Cancelado',
-    className: 'bg-red-100 text-red-800',
+    className: 'bg-red-200 text-red-800',
   },
-  draft: {
+  [EventStatus.DRAFT]: {
     label: 'Borrador',
-    className: 'bg-yellow-100 text-yellow-800',
+    className: 'bg-yellow-200 text-yellow-800',
   },
-  pre_sale: {
+  [EventStatus.PRE_SALE]: {
     label: 'Pre-venta',
-    className: 'bg-blue-100 text-blue-800',
+    className: 'bg-purple-100 text-purple-800',
+  },
+  [EventStatus.SUSPENDED]: {
+    label: 'Suspendido',
+    className: 'bg-orange-200 text-orange-800',
+  },
+  [EventStatus.FINISHED]: {
+    label: 'Finalizado',
+    className: 'bg-slate-200 text-slate-800',
   },
 };
 
 const UNKNOWN_STATUS_CONFIG = {
   label: 'Desconocido',
-  className: 'bg-gray-100 text-gray-800',
+  className: 'bg-slate-200 text-slate-800',
 };
 
 export default function EventStatusBadge({ status, className }: EventStatusBadgeProps) {
   // Normalize status to handle potential casing issues from the API
-  const normalizedStatus = (status?.toLowerCase() ?? '') as EventStatus;
+  const normalizedStatus = (status?.toUpperCase() ?? '') as EventStatus;
   const config = STATUS_CONFIG[normalizedStatus] ?? UNKNOWN_STATUS_CONFIG;
 
   // Use the original status for the label if it was unknown, but formatted

@@ -7,7 +7,7 @@ import Pagination from '@/src/components/ui/Pagination';
 import Table, { createActionsColumn, type Column } from '@/src/components/ui/Table';
 import Button from '@/src/components/ui/Button';
 import EventStatusBadge from './EventStatusBadge';
-import type { Event, EventStatus } from '@/src/lib/types';
+import { type Event, EventStatus } from '@/src/lib/types';
 
 interface EventListProps {
   events: Event[];
@@ -84,22 +84,24 @@ export default function EventList({
       createActionsColumn<Event>((event) => (
         <div className="flex items-center justify-end gap-2">
           {/* Status Change Actions */}
-          {event.status === 'inactive' && (
+          {event.status === EventStatus.DRAFT && (
             <Button
               size="sm"
-              onClick={() => handleStatusChange(event.id, 'active')}
-              disabled={isSubmitting === `${event.id}-active`}
+              onClick={() => handleStatusChange(event.id, EventStatus.ACTIVE)}
+              disabled={isSubmitting === `${event.id}-${EventStatus.ACTIVE}`}
             >
-              {isSubmitting === `${event.id}-active` ? 'Activando...' : 'Activar'}
+              {isSubmitting === `${event.id}-${EventStatus.ACTIVE}` ? 'Activando...' : 'Activar'}
             </Button>
           )}
-          {event.status === 'active' && (
+          {event.status === EventStatus.ACTIVE && (
             <Button
               size="sm"
-              onClick={() => handleStatusChange(event.id, 'inactive')}
-              disabled={isSubmitting === `${event.id}-inactive`}
+              onClick={() => handleStatusChange(event.id, EventStatus.DRAFT)}
+              disabled={isSubmitting === `${event.id}-${EventStatus.DRAFT}`}
             >
-              {isSubmitting === `${event.id}-inactive` ? 'Desactivando...' : 'Desactivar'}
+              {isSubmitting === `${event.id}-${EventStatus.DRAFT}`
+                ? 'Desactivando...'
+                : 'Desactivar'}
             </Button>
           )}
 
@@ -114,7 +116,7 @@ export default function EventList({
             variant="ghost"
             size="sm"
             onClick={() => onDelete?.(event.id)}
-            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+            className="text-red-600 hover:bg-red-100 hover:text-red-700 focus-visible:ring-red-300"
           >
             Eliminar
           </Button>
@@ -151,10 +153,10 @@ export default function EventList({
   // Empty state
   if (events.length === 0) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center rounded-lg border-2 border-dashed border-slate-200">
+      <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
         <div className="text-center">
           <svg
-            className="mx-auto h-12 w-12 text-slate-300"
+            className="mx-auto h-16 w-16 text-slate-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -162,11 +164,12 @@ export default function EventList({
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth={1.5}
+              strokeWidth={2}
               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
-          <p className="mt-4 text-sm text-slate-500">{emptyMessage}</p>
+          <h3 className="mt-4 text-xl font-semibold text-slate-900">No hay eventos disponibles</h3>
+          <p className="mt-2 text-sm text-slate-600">{emptyMessage}</p>
         </div>
       </div>
     );
