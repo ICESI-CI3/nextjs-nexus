@@ -26,7 +26,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <React.Suspense fallback={<div>Cargando...</div>}>
+          <React.Suspense fallback={<div className="text-sm text-slate-600">Cargando...</div>}>
             <LoginForm />
           </React.Suspense>
         </div>

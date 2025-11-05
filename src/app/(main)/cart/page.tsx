@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/src/stores/useCartStore';
 import CartItem from '@/src/components/cart/CartItem';
 import CartSummary from '@/src/components/cart/CartSummary';
+import Button from '@/src/components/ui/Button';
 import { showToast } from '@/src/lib/toast';
 
 export default function CartPage() {
@@ -35,7 +36,7 @@ export default function CartPage() {
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
             <div className="mb-4 inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-slate-600 border-r-transparent"></div>
-            <p className="text-slate-600">Cargando carrito...</p>
+            <p className="text-sm text-slate-600">Cargando carrito...</p>
           </div>
         </div>
       </div>
@@ -60,14 +61,11 @@ export default function CartPage() {
               d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <h3 className="mb-2 text-lg font-semibold text-red-900">Error al cargar el carrito</h3>
-          <p className="mb-4 text-red-700">{error}</p>
-          <button
-            onClick={() => fetchCarts()}
-            className="rounded-md bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700"
-          >
+          <h3 className="mb-2 text-xl font-semibold text-red-900">Error al cargar el carrito</h3>
+          <p className="mb-4 text-sm text-red-700">{error}</p>
+          <Button onClick={() => fetchCarts()} variant="primary">
             Reintentar
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -93,13 +91,10 @@ export default function CartPage() {
             />
           </svg>
           <h3 className="mb-2 text-xl font-semibold text-slate-900">Tu carrito esta vacio</h3>
-          <p className="mb-4 text-slate-600">Agrega tickets a tu carrito para continuar.</p>
-          <button
-            onClick={() => router.push('/events')}
-            className="rounded-md bg-blue-600 px-6 py-2 text-white transition-colors hover:bg-blue-700"
-          >
+          <p className="mb-4 text-sm text-slate-600">Agrega tickets a tu carrito para continuar.</p>
+          <Button onClick={() => router.push('/events')} variant="primary">
             Ver eventos
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -124,12 +119,9 @@ export default function CartPage() {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-3xl font-bold text-slate-900">Carrito de Compras</h1>
-          <button
-            onClick={() => router.push('/events')}
-            className="text-blue-600 transition-colors hover:text-blue-700"
-          >
+          <Button onClick={() => router.push('/events')} variant="ghost">
             Seguir comprando
-          </button>
+          </Button>
         </div>
 
         {/* Carts */}
@@ -142,7 +134,7 @@ export default function CartPage() {
               {/* Cart items - 2/3 width */}
               <div className="lg:col-span-2">
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-slate-900">{cart.event.title}</h2>
+                  <h2 className="text-2xl font-bold text-slate-900">{cart.event.title}</h2>
                   <button
                     onClick={() => handleClearCart(cart.id)}
                     className="text-sm text-red-600 transition-colors hover:text-red-700"
@@ -152,7 +144,7 @@ export default function CartPage() {
                 </div>
 
                 {cart.items.length === 0 ? (
-                  <p className="text-slate-600">No hay items en este carrito</p>
+                  <p className="text-sm text-slate-600">No hay items en este carrito</p>
                 ) : (
                   <div>
                     {cart.items.map((item) => (

@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePurchaseStore } from '@/src/stores/usePurchaseStore';
 import PurchaseHistoryItem from '@/src/components/purchases/PurchaseHistoryItem';
+import Button from '@/src/components/ui/Button';
 import { showToast } from '@/src/lib/toast';
 
 export default function PurchaseHistoryPage() {
@@ -34,7 +35,7 @@ export default function PurchaseHistoryPage() {
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
             <div className="mb-4 inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-            <p className="text-gray-600">Cargando historial...</p>
+            <p className="text-sm text-gray-600">Cargando historial...</p>
           </div>
         </div>
       </div>
@@ -59,14 +60,11 @@ export default function PurchaseHistoryPage() {
               d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <h3 className="mb-2 text-lg font-semibold text-red-900">Error al cargar historial</h3>
-          <p className="mb-4 text-red-700">{error}</p>
-          <button
-            onClick={() => fetchPurchases()}
-            className="rounded-md bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700"
-          >
+          <h3 className="mb-2 text-xl font-semibold text-red-900">Error al cargar historial</h3>
+          <p className="mb-4 text-sm text-red-700">{error}</p>
+          <Button onClick={() => fetchPurchases()} variant="primary">
             Reintentar
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -92,13 +90,10 @@ export default function PurchaseHistoryPage() {
             />
           </svg>
           <h3 className="mb-2 text-xl font-semibold text-gray-900">No tienes compras aun</h3>
-          <p className="mb-4 text-gray-600">Cuando realices una compra, aparecera aqui.</p>
-          <button
-            onClick={() => router.push('/events')}
-            className="rounded-md bg-blue-600 px-6 py-2 text-white transition-colors hover:bg-blue-700"
-          >
+          <p className="mb-4 text-sm text-gray-600">Cuando realices una compra, aparecera aqui.</p>
+          <Button onClick={() => router.push('/events')} variant="primary">
             Explorar eventos
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -111,17 +106,14 @@ export default function PurchaseHistoryPage() {
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Historial de Compras</h1>
-            <p className="mt-1 text-gray-600">
+            <p className="mt-1 text-sm text-gray-600">
               {purchases.length}{' '}
               {purchases.length === 1 ? 'compra realizada' : 'compras realizadas'}
             </p>
           </div>
-          <button
-            onClick={() => router.push('/events')}
-            className="rounded-md bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
-          >
+          <Button onClick={() => router.push('/events')} variant="primary">
             Ver eventos
-          </button>
+          </Button>
         </div>
 
         {/* Purchases list */}
