@@ -17,6 +17,7 @@ interface VenueModalProps {
 export default function VenueModal({ isOpen, onClose, venueToEdit }: VenueModalProps) {
   const [name, setName] = React.useState('');
   const [address, setAddress] = React.useState('');
+  const [city, setCity] = React.useState('');
   const [capacity, setCapacity] = React.useState('');
   const [error, setError] = React.useState<string | null>(null);
 
@@ -29,10 +30,12 @@ export default function VenueModal({ isOpen, onClose, venueToEdit }: VenueModalP
       if (isEditMode && venueToEdit) {
         setName(venueToEdit.name);
         setAddress(venueToEdit.address);
-        setCapacity(String(venueToEdit.capacity));
+        setCity(venueToEdit.city);
+        setCapacity(String(venueToEdit.maxCapacity));
       } else {
         setName('');
         setAddress('');
+        setCity('');
         setCapacity('');
       }
       setError(null);
@@ -43,7 +46,7 @@ export default function VenueModal({ isOpen, onClose, venueToEdit }: VenueModalP
     e.preventDefault();
     setError(null);
 
-    if (!name.trim() || !address.trim() || !capacity.trim()) {
+    if (!name.trim() || !address.trim() || !city.trim() || !capacity.trim()) {
       setError('Todos los campos son obligatorios.');
       return;
     }
@@ -57,7 +60,8 @@ export default function VenueModal({ isOpen, onClose, venueToEdit }: VenueModalP
     const venueData: CreateVenueDTO = {
       name,
       address,
-      capacity: parsedCapacity,
+      city,
+      maxCapacity: parsedCapacity,
     };
 
     try {
@@ -114,6 +118,21 @@ export default function VenueModal({ isOpen, onClose, venueToEdit }: VenueModalP
             type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
+            disabled={isLoading}
+            className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm"
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="venue-city" className="block text-sm font-medium text-slate-700">
+            Ciudad
+          </label>
+          <input
+            id="venue-city"
+            type="text"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
             disabled={isLoading}
             className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm"
             required

@@ -26,7 +26,7 @@ export default function CategoryModal({ isOpen, onClose, categoryToEdit }: Categ
   React.useEffect(() => {
     if (isEditMode && categoryToEdit) {
       setName(categoryToEdit.name);
-      setDescription(categoryToEdit.description);
+      setDescription(categoryToEdit.description || '');
     } else {
       // Reset form for create mode
       setName('');

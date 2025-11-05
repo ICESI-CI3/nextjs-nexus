@@ -75,7 +75,9 @@ export default function VenueList() {
       key: 'capacity',
       header: 'Capacidad',
       render: (venue) => (
-        <p className="text-sm text-slate-600">{venue.capacity?.toLocaleString('es-ES') ?? 'N/A'}</p>
+        <p className="text-sm text-slate-600">
+          {venue.maxCapacity?.toLocaleString('es-ES') ?? 'N/A'}
+        </p>
       ),
     },
     createActionsColumn<Venue>((venue) => (
