@@ -4,9 +4,9 @@ echo "🚀 Running pre-push checks..."
 echo "🔎 Type checking..."
 npm run type-check
 
-# Build check (comentado por ahora debido al issue con turbopack)
-# echo "🏗️ Building project..."
-# npm run build
+# Build check
+echo "🏗️ Building project..."
+npm run build
 
 # Run tests (cuando se implementen)
 # echo "🧪 Running tests..."
