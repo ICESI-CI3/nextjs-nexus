@@ -1,11 +1,14 @@
 /**
- * Authentication Service
+ * Authentication Service (axios-based)
+ * - Normaliza snake_case → camelCase.
+ * - Persiste tokens e instala Authorization header.
+ * - Login con/sin 2FA, verify2FA, refresh, logout, getProfile.
  */
 
-import apiClient from '@/src/lib/apiClient';
+import apiClient, { setAuthToken, removeAuthToken } from '@/src/lib/apiClient';
 import { AUTH_CONFIG } from '@/src/lib/constants';
-import { setLocalStorage, removeLocalStorage } from '@/src/lib/utils';
-import type { User } from '@/src/lib/types'; // ← ADD THIS IMPORT
+import { setLocalStorage, removeLocalStorage, getLocalStorage } from '@/src/lib/utils';
+import type { User } from '@/src/lib/types';
 
 /** Backend response format (snake_case) */
 interface TokensResponse {
@@ -13,187 +16,218 @@ interface TokensResponse {
   refresh_token: string;
 }
 
-/** Indicates 2FA is required */
+/** Indica que 2FA es requerido */
 interface Requires2FAResponse {
   requires2FA: boolean;
   message?: string;
 }
 
-/** Successful login without 2FA */
+/** Login exitoso sin 2FA */
 export interface LoginSuccess {
   requires2FA: false;
   accessToken: string;
   refreshToken: string;
 }
 
-/** Login requiring 2FA verification */
+/** Login que requiere 2FA */
 export interface LoginNeeds2FA {
   requires2FA: true;
   message?: string;
 }
 
-/** Union type for login result */
+/** Union para el resultado de login */
 export type LoginResult = LoginSuccess | LoginNeeds2FA;
 
-/** 2FA setup response */
+/** Respuesta típica de setup 2FA */
 export interface Setup2FAResponse {
   secret: string;
   qrCodeUrl: string;
   backupCodes: string[];
 }
 
-// ← REMOVE UserProfile interface, use User type instead
+/** Normaliza un error desconocido a string sin usar `any` */
+function normalizeError(e: unknown): string {
+  if (e instanceof Error && e.message) return e.message;
 
-/**
- * Persists JWT tokens to localStorage
- * Extracted to avoid duplication
- */
-function persistTokens(accessToken: string, refreshToken: string): void {
-  setLocalStorage(AUTH_CONFIG.TOKEN_KEY, accessToken);
-  setLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY, refreshToken);
+  // axios-like
+  const maybe = e as {
+    response?: { data?: unknown; status?: number };
+    message?: unknown;
+  } | null;
+
+  const msgFromResponse =
+    typeof maybe?.response?.data === 'string'
+      ? (maybe.response.data as string)
+      : typeof (maybe?.response as { data?: { message?: unknown } })?.data === 'object' &&
+          maybe?.response &&
+          (maybe.response.data as { message?: unknown })?.message &&
+          typeof (maybe.response.data as { message?: unknown })?.message === 'string'
+        ? String((maybe.response.data as { message?: unknown })?.message)
+        : undefined;
+
+  if (msgFromResponse) return msgFromResponse;
+  if (typeof maybe?.message === 'string') return maybe.message;
+
+  try {
+    return JSON.stringify(e);
+  } catch {
+    return 'Unexpected error';
+  }
 }
 
-/**
- * Clears all auth-related data from localStorage
- */
+/** Persistir tokens e instalar Authorization inmediatamente */
+function persistTokens(accessToken: string, refreshToken?: string): void {
+  setAuthToken(accessToken);
+  setLocalStorage(AUTH_CONFIG.TOKEN_KEY, accessToken);
+  if (refreshToken) setLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY, refreshToken);
+}
+
+/** Borrar auth local y header */
 function clearAuthData(): void {
+  removeAuthToken();
   removeLocalStorage(AUTH_CONFIG.TOKEN_KEY);
   removeLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY);
   removeLocalStorage(AUTH_CONFIG.USER_KEY);
 }
 
-/**
- * Login with email and password
- * Returns tokens or 2FA requirement
- */
-async function login(email: string, password: string): Promise<LoginResult> {
-  const response = await apiClient.post<TokensResponse | Requires2FAResponse>('/auth/login', {
-    email,
-    password,
-  });
+/** Login email+password */
+export async function login(email: string, password: string): Promise<LoginResult> {
+  try {
+    const { data } = await apiClient.post<TokensResponse | Requires2FAResponse>('/auth/login', {
+      email,
+      password,
+    });
 
-  const data = response.data;
+    if ('requires2FA' in data && data.requires2FA) {
+      return { requires2FA: true, message: data.message };
+    }
 
-  // Check if 2FA is required
-  if ('requires2FA' in data && data.requires2FA) {
+    const tokens = data as TokensResponse;
+    persistTokens(tokens.access_token, tokens.refresh_token);
+
     return {
-      requires2FA: true,
-      message: data.message,
+      requires2FA: false,
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
     };
+  } catch (e: unknown) {
+    throw new Error(normalizeError(e));
   }
-
-  // Type assertion after confirming it's not 2FA response
-  const tokens = data as TokensResponse;
-  persistTokens(tokens.access_token, tokens.refresh_token);
-
-  return {
-    requires2FA: false,
-    accessToken: tokens.access_token,
-    refreshToken: tokens.refresh_token,
-  };
 }
 
-/**
- * Complete login with 2FA code
- */
-async function loginWith2FA(
+/** Login en un paso con TOTP (si tu backend lo soporta) */
+export async function loginWith2FA(
   email: string,
   password: string,
   totpCode: string
 ): Promise<{ accessToken: string; refreshToken: string }> {
-  const response = await apiClient.post<TokensResponse>('/auth/login-2fa', {
-    email,
-    password,
-    totpCode,
-  });
-
-  const { access_token, refresh_token } = response.data;
-  persistTokens(access_token, refresh_token);
-
-  return {
-    accessToken: access_token,
-    refreshToken: refresh_token,
-  };
+  try {
+    const { data } = await apiClient.post<TokensResponse>('/auth/login-2fa', {
+      email,
+      password,
+      totpCode,
+    });
+    persistTokens(data.access_token, data.refresh_token);
+    return { accessToken: data.access_token, refreshToken: data.refresh_token };
+  } catch (e: unknown) {
+    throw new Error(normalizeError(e));
+  }
 }
 
-/**
- * Refresh access token using refresh token
- */
-async function refresh(
-  refreshToken: string
+/** Verificar 2FA después de un login que devolvió requires2FA */
+export async function verify2FA(
+  code: string
+): Promise<{ accessToken: string; refreshToken?: string }> {
+  try {
+    const { data } = await apiClient.post<TokensResponse>('/auth/verify-2fa', { code });
+    persistTokens(data.access_token, data.refresh_token);
+    return { accessToken: data.access_token, refreshToken: data.refresh_token };
+  } catch (e: unknown) {
+    throw new Error(normalizeError(e));
+  }
+}
+
+/** Refrescar access token con refresh token */
+export async function refresh(
+  refreshTokenArg?: string
 ): Promise<{ accessToken: string; refreshToken: string }> {
-  const response = await apiClient.post<TokensResponse>('/auth/refresh', {
-    refresh_token: refreshToken,
-  });
+  try {
+    const refreshToken =
+      refreshTokenArg || getLocalStorage<string | null>(AUTH_CONFIG.REFRESH_TOKEN_KEY, null) || '';
 
-  const { access_token, refresh_token } = response.data;
-  persistTokens(access_token, refresh_token);
+    const { data } = await apiClient.post<TokensResponse>('/auth/refresh', {
+      refresh_token: refreshToken,
+    });
 
-  return {
-    accessToken: access_token,
-    refreshToken: refresh_token,
-  };
+    persistTokens(data.access_token, data.refresh_token);
+    return { accessToken: data.access_token, refreshToken: data.refresh_token };
+  } catch (e: unknown) {
+    clearAuthData();
+    throw new Error(normalizeError(e));
+  }
 }
 
-/**
- * Logout user and clear tokens
- */
-async function logout(): Promise<void> {
+/** Logout: limpia incluso si la API falla */
+export async function logout(): Promise<void> {
   try {
     await apiClient.post('/auth/logout');
+  } catch {
+    // noop
   } finally {
-    // Always clear local data even if API call fails
     clearAuthData();
   }
 }
 
-/**
- * Initialize 2FA setup (get QR code and secret)
- * Requires authentication
- */
-async function setup2FA(): Promise<Setup2FAResponse> {
-  const response = await apiClient.get<Setup2FAResponse>('/auth/setup-2fa');
-  return response.data;
+/** Iniciar setup 2FA (QR + secret) */
+export async function setup2FA(): Promise<Setup2FAResponse> {
+  try {
+    const { data } = await apiClient.get<Setup2FAResponse>('/auth/setup-2fa');
+    return data;
+  } catch (e: unknown) {
+    throw new Error(normalizeError(e));
+  }
 }
 
-/**
- * Enable 2FA by verifying TOTP code
- * Requires authentication
- */
-async function enable2FA(totpCode: string): Promise<void> {
-  await apiClient.post('/auth/enable-2fa', { totpCode });
+/** Habilitar 2FA */
+export async function enable2FA(totpCode: string): Promise<void> {
+  try {
+    await apiClient.post('/auth/enable-2fa', { totpCode });
+  } catch (e: unknown) {
+    throw new Error(normalizeError(e));
+  }
 }
 
-/**
- * Disable 2FA using TOTP or backup code
- * Requires authentication
- */
-async function disable2FA(code: string): Promise<void> {
-  await apiClient.post('/auth/disable-2fa', { code });
+/** Deshabilitar 2FA */
+export async function disable2FA(code: string): Promise<void> {
+  try {
+    await apiClient.post('/auth/disable-2fa', { code });
+  } catch (e: unknown) {
+    throw new Error(normalizeError(e));
+  }
 }
 
-/**
- * Get current user profile
- * Requires authentication
- */
-async function getProfile(): Promise<User> {
-  // ← CHANGED FROM UserProfile TO User
-  const response = await apiClient.get<User>('/auth/profile');
-  return response.data;
+/** Perfil actual (usa ruta configurable si existe) */
+export async function getProfile(): Promise<User> {
+  try {
+    // apiClient ya tiene baseURL configurada
+    const { data } = await apiClient.get<User>('/auth/me');
+    return data;
+  } catch (e: unknown) {
+    throw new Error(normalizeError(e));
+  }
 }
 
 const authService = {
   // Auth
   login,
   loginWith2FA,
+  verify2FA,
   refresh,
   logout,
-
   // 2FA
   setup2FA,
   enable2FA,
   disable2FA,
-
   // Profile
   getProfile,
 };

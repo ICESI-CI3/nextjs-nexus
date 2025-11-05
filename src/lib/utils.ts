@@ -46,17 +46,34 @@ export const authSchemas = {
 };
 
 /**
- * IMPORTANT: Add your own validation schemas here based on your backend requirements
- *
- * Example:
- * export const userSchemas = {
- *   create: z.object({
- *     name: z.string().min(1, 'El nombre es requerido'),
- *     email: z.string().email('Email inválido'),
- *     // ... other fields
- *   }),
- * };
+ * Schemas for User management
  */
+export const userSchemas = {
+  // Schema for creating a new user
+  create: z.object({
+    firstName: z.string().min(1, 'First name is required').max(100),
+    lastName: z.string().min(1, 'Last name is required').max(100),
+    email: z.string().email('Invalid email').max(VALIDATION.EMAIL_MAX_LENGTH),
+    password: z
+      .string()
+      .min(
+        VALIDATION.PASSWORD_MIN_LENGTH,
+        `Password must be at least ${VALIDATION.PASSWORD_MIN_LENGTH} characters`
+      )
+      .max(VALIDATION.PASSWORD_MAX_LENGTH),
+    roleIds: z.array(z.string()).min(1, 'At least one role is required'),
+  }),
+
+  // Schema for updating an existing user
+  update: z.object({
+    firstName: z.string().min(1, 'First name is required').max(100),
+    lastName: z.string().min(1, 'Last name is required').max(100),
+    email: z.string().email('Invalid email').max(VALIDATION.EMAIL_MAX_LENGTH),
+    // Password is optional on update
+    password: z.string().optional().or(z.literal('')),
+    roleIds: z.array(z.string()).min(1, 'At least one role is required'),
+  }),
+};
 
 // ==================== DATE UTILITIES ====================
 

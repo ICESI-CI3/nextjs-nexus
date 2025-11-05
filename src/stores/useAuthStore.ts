@@ -1,13 +1,92 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, ApiError } from '@/src/lib/types';
-import { AUTH_CONFIG, ROUTES } from '@/src/lib/constants'; // ← ADDED ROUTES
+import type { User } from '@/src/lib/types';
+import { AUTH_CONFIG, ROUTES } from '@/src/lib/constants';
 import { getLocalStorage, setLocalStorage, removeLocalStorage } from '@/src/lib/utils';
 import { setAuthToken, removeAuthToken } from '@/src/lib/apiClient';
-import authService, { type LoginResult } from '@/src/services/authService';
+import authService, {
+  type LoginResult,
+  verify2FA as serviceVerify2FA,
+} from '@/src/services/authService';
+
+// --------------------------------------------
+// Helpers
+// --------------------------------------------
+
+const isNonEmptyString = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0;
+
+function msgFromUnknown(e: unknown, fallback = 'Unexpected error'): string {
+  if (e instanceof Error && e.message) return e.message;
+  const maybe = e as { message?: unknown; response?: { data?: unknown } } | null;
+  const respMsg =
+    typeof (maybe?.response as { data?: { message?: unknown } })?.data === 'object' &&
+    (maybe?.response?.data as { message?: unknown })?.message &&
+    typeof (maybe?.response?.data as { message?: unknown })?.message === 'string'
+      ? String((maybe?.response?.data as { message?: unknown })?.message)
+      : undefined;
+  if (respMsg) return respMsg;
+  if (typeof maybe?.message === 'string') return maybe.message;
+  return fallback;
+}
+
+/**
+ * Extrae nombres/ids de roles robustamente:
+ * - Si el backend manda user.roleIds: string[] → lo retornamos.
+ * - Si manda user.roles: string[] → lo retornamos.
+ * - Si manda user.roles: { name }[] → retornamos name[].
+ */
+function extractRoleNames(user: User | null): string[] {
+  const u = user as unknown as { roleIds?: unknown; roles?: unknown };
+  if (Array.isArray(u?.roleIds)) {
+    return (u.roleIds as unknown[]).filter(isNonEmptyString);
+  }
+  if (Array.isArray(u?.roles)) {
+    const rolesArr = u.roles as unknown[];
+    const byString = rolesArr.filter(isNonEmptyString) as string[];
+    if (byString.length) return byString;
+    // roles: { name?: string }[]
+    return rolesArr
+      .map((r) => {
+        const name = (r as { name?: unknown })?.name;
+        return isNonEmptyString(name) ? name : undefined;
+      })
+      .filter(isNonEmptyString);
+  }
+  return [];
+}
+
+/**
+ * Extrae permisos cuando existan:
+ * - user.permissions: string[] directo
+ * - user.roles: { permissions: (string[] | {name:string}[]) }[]
+ * Si solo tienes roleIds, esto quedará [] (y está bien hasta que resuelvas permisos aparte).
+ */
+function extractPermissionNames(user: User | null): string[] {
+  const u = user as unknown as { permissions?: unknown; roles?: unknown };
+  if (Array.isArray(u?.permissions)) {
+    return (u.permissions as unknown[]).filter(isNonEmptyString);
+  }
+  if (Array.isArray(u?.roles)) {
+    const rolesArr = u.roles as unknown[];
+    const out: string[] = [];
+    for (const r of rolesArr) {
+      const perms = (r as { permissions?: unknown })?.permissions;
+      if (Array.isArray(perms)) {
+        for (const p of perms) {
+          if (isNonEmptyString(p)) out.push(p);
+          else if (p && typeof (p as { name?: unknown }).name === 'string') {
+            out.push(String((p as { name?: unknown }).name));
+          }
+        }
+      }
+    }
+    return out;
+  }
+  return [];
+}
 
 // ============================================
-// STATE & ACTIONS INTERFACE
+// STATE & ACTIONS INTERFACES
 // ============================================
 
 interface AuthState {
@@ -15,19 +94,34 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  twoFactorEnabled: boolean | null; // null = unknown, not yet fetched
+  twoFactorEnabled: boolean | null; // null = desconocido
+  roles: string[]; // role names o ids (según lo que llegue)
+  permissions: string[]; // si solo hay roleIds, quedará []
 }
 
 interface AuthActions {
+  // Setters
   setUser: (user: User | null) => void;
   setTokens: (tokens: { accessToken: string; refreshToken?: string }) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   setTwoFactorEnabled: (enabled: boolean | null) => void;
+
+  // Flujos
   login: (payload: { email: string; password: string }) => Promise<LoginResult>;
+  verify2FA: (code: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => void;
   fetchProfile: () => Promise<void>;
+
+  // Roles/Permisos
+  getRoles: () => string[];
+  hasRole: (role: string) => boolean;
+  hasAnyRole: (roles: string[]) => boolean;
+
+  getPermissions: () => string[];
+  hasPermission: (perm: string) => boolean;
+
   clearError: () => void;
 }
 
@@ -46,71 +140,48 @@ export const useAuthStore = create<AuthStore>()(
       isLoading: true,
       error: null,
       twoFactorEnabled: null,
+      roles: [],
+      permissions: [],
 
-      // ========== ACTIONS ==========
+      // ========== SETTERS ==========
 
-      /**
-       * Set user and sync with localStorage
-       */
       setUser: (user) => {
+        const roleNamesOrIds = extractRoleNames(user);
+        const permNames = extractPermissionNames(user);
         set({
           user,
           isAuthenticated: !!user,
           twoFactorEnabled: user?.twoFactorEnabled ?? null,
+          roles: roleNamesOrIds,
+          permissions: permNames,
         });
-
-        if (user) {
-          setLocalStorage(AUTH_CONFIG.USER_KEY, user);
-        } else {
-          removeLocalStorage(AUTH_CONFIG.USER_KEY);
-        }
       },
 
-      /**
-       * Set JWT tokens in both apiClient and localStorage
-       */
       setTokens: (tokens) => {
         setAuthToken(tokens.accessToken);
-
+        setLocalStorage(AUTH_CONFIG.TOKEN_KEY, tokens.accessToken);
         if (tokens.refreshToken) {
           setLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY, tokens.refreshToken);
         }
-
         set({ isAuthenticated: true });
       },
 
-      /**
-       * Set loading state
-       */
       setLoading: (loading) => set({ isLoading: loading }),
-
-      /**
-       * Set error message
-       */
       setError: (error) => set({ error }),
-
-      /**
-       * Set 2FA enabled status
-       */
       setTwoFactorEnabled: (enabled) => set({ twoFactorEnabled: enabled }),
 
-      /**
-       * Login with email and password
-       * Returns LoginResult (may require 2FA)
-       */
+      // ========== FLOWS ==========
+
       login: async ({ email, password }) => {
         try {
           set({ isLoading: true, error: null });
-
           const result = await authService.login(email, password);
 
-          // If 2FA is required, don't set tokens yet
           if ('requires2FA' in result && result.requires2FA) {
-            set({ isLoading: false });
+            set({ isLoading: false, twoFactorEnabled: true });
             return result;
           }
 
-          // No 2FA required - set tokens and mark authenticated
           get().setTokens({
             accessToken: result.accessToken,
             refreshToken: result.refreshToken,
@@ -118,30 +189,43 @@ export const useAuthStore = create<AuthStore>()(
 
           set({ isLoading: false });
           return result;
-        } catch (error) {
-          const apiError = error as ApiError;
-          set({
-            error: apiError.message || 'Error al iniciar sesión',
-            isLoading: false,
-          });
-          throw error;
+        } catch (e: unknown) {
+          const message = msgFromUnknown(e, 'Error al iniciar sesión');
+          set({ error: message, isLoading: false });
+          throw new Error(message);
         }
       },
 
-      /**
-       * Logout - clear tokens and reset state
-       */
+      verify2FA: async (code: string) => {
+        try {
+          set({ isLoading: true, error: null });
+          const result = await serviceVerify2FA(code);
+          if (!result?.accessToken) {
+            throw new Error('Invalid 2FA verification response');
+          }
+          get().setTokens({
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken,
+          });
+          await get().fetchProfile();
+        } catch (e: unknown) {
+          const msg = msgFromUnknown(e, 'Error al verificar 2FA');
+          set({ error: msg });
+          throw new Error(msg);
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
       logout: async () => {
         try {
           set({ isLoading: true });
           await authService.logout();
-        } catch (error) {
-          // Log error but continue with cleanup
-          console.error('Logout error:', error);
+        } catch (e) {
+          console.error('Logout error:', e);
         } finally {
-          // Always clear local data even if API call fails
           removeAuthToken();
-          removeLocalStorage(AUTH_CONFIG.USER_KEY);
+          removeLocalStorage(AUTH_CONFIG.TOKEN_KEY);
           removeLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY);
 
           set({
@@ -150,67 +234,94 @@ export const useAuthStore = create<AuthStore>()(
             isLoading: false,
             error: null,
             twoFactorEnabled: null,
+            roles: [],
+            permissions: [],
           });
 
-          // Redirect to login
           if (typeof window !== 'undefined') {
             window.location.href = ROUTES.LOGIN;
           }
         }
       },
 
-      /**
-       * Check if user is authenticated on app load
-       * Does NOT fetch profile, just checks for token presence
-       */
       checkAuth: () => {
         set({ isLoading: true });
-
         const token = getLocalStorage<string | null>(AUTH_CONFIG.TOKEN_KEY, null);
 
         if (token) {
+          setAuthToken(token);
           set({ isAuthenticated: true, isLoading: false });
         } else {
-          set({ user: null, isAuthenticated: false, isLoading: false });
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            roles: [],
+            permissions: [],
+          });
         }
       },
 
-      /**
-       * Fetch user profile from backend
-       * Updates user object and 2FA status
-       */
       fetchProfile: async () => {
         try {
-          set({ isLoading: true });
-
+          set({ isLoading: true, error: null });
           const profile = await authService.getProfile();
-
           get().setUser(profile);
-        } catch (error) {
-          const apiError = error as ApiError;
-          set({
-            error: apiError.message || 'Error al cargar perfil',
-            isLoading: false,
-          });
-          throw error;
+        } catch (e: unknown) {
+          const msg = msgFromUnknown(e, 'Error al cargar perfil');
+          set({ error: msg });
+          throw new Error(msg);
         } finally {
           set({ isLoading: false });
         }
       },
 
-      /**
-       * Clear error message
-       */
+      // ========== ROLES/PERMISOS ==========
+
+      getRoles: () => {
+        const state = get();
+        return state.roles.length ? state.roles : extractRoleNames(state.user);
+      },
+
+      hasRole: (role) => {
+        const rolesSet = new Set(get().getRoles());
+        return rolesSet.has(role);
+      },
+
+      hasAnyRole: (list) => {
+        const rolesSet = new Set(get().getRoles());
+        return list.some((r) => rolesSet.has(r));
+      },
+
+      getPermissions: () => {
+        const state = get();
+        return state.permissions.length ? state.permissions : extractPermissionNames(state.user);
+      },
+
+      hasPermission: (perm) => {
+        const perms = new Set(get().getPermissions());
+        return perms.has(perm);
+      },
+
       clearError: () => set({ error: null }),
     }),
     {
       name: 'auth-storage',
-      // Only persist user, isAuthenticated, and twoFactorEnabled
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
         twoFactorEnabled: state.twoFactorEnabled,
+        roles: state.roles,
+        permissions: state.permissions,
       }),
+      onRehydrateStorage: () => () => {
+        try {
+          const token = getLocalStorage<string | null>(AUTH_CONFIG.TOKEN_KEY, null);
+          if (token) setAuthToken(token);
+        } catch {
+          // ignore
+        }
+      },
     }
   )
 );

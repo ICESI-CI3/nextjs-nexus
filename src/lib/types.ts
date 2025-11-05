@@ -37,6 +37,16 @@ export enum PaymentStatus {
 // ==================== CORE ENTITIES ====================
 
 /**
+ * Role type - matches backend ResponseRoleDto
+ */
+export interface Role {
+  id: string;
+  name: string;
+  description?: string;
+  permissionIds: string[];
+}
+
+/**
  * User type - matches backend ResponseUserDto
  */
 export interface User {
@@ -47,16 +57,7 @@ export interface User {
   twoFactorEnabled?: boolean;
   createdAt: Date | string;
   roleIds: string[];
-}
-
-/**
- * Role type - matches backend ResponseRoleDto
- */
-export interface Role {
-  id: string;
-  name: string;
-  description?: string;
-  permissionIds: string[];
+  roles?: Role[]; // <-- MODIFICACIÓN: Añadido para incluir info de roles
 }
 
 /**
@@ -265,6 +266,34 @@ export interface CreatePurchaseDto {
   eventId: string;
   ticketTypeId: string;
   quantity: number;
+  firstName: string;
+  lastName: string;
+  [key: string]: unknown;
+}
+
+/**
+ * DTO (Data Transfer Object) for creating a new user.
+ * Based on the backend's create-user.dto.ts.
+ */
+export interface CreateUserDto {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password?: string; // Optional if creation/invitation doesn't require a password
+  roleIds?: string[]; // IDs of the roles to assign
+}
+
+/**
+ * DTO for updating an existing user.
+ * Based on the backend's update-user.dto.ts.
+ * All fields are optional.
+ */
+export interface UpdateUserDto {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  password?: string; // To reset the password
+  roleIds?: string[]; // To update the list of roles
 }
 
 // ==================== API RESPONSE TYPES (GENERIC) ====================
