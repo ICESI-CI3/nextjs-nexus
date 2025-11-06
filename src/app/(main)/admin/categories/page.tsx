@@ -2,10 +2,10 @@
 
 import * as React from 'react';
 import CategoryList from '@/src/components/categories/CategoryList';
-import useRequireAuth from '@/src/hooks/useRequireAuth';
+import { useRequireRole } from '@/src/hooks/useRequireRole';
 
 export default function AdminCategoriesPage() {
-  const { isAuthenticated, isLoading } = useRequireAuth();
+  const { isLoading, isAuthorized } = useRequireRole('ADMINISTRATOR');
 
   if (isLoading) {
     return (
@@ -15,7 +15,7 @@ export default function AdminCategoriesPage() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthorized) {
     return null;
   }
 

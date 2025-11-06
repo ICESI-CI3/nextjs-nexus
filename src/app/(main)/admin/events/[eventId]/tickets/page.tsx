@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import TicketTypeManager from '@/src/components/events/TicketTypeManager';
 import Button from '@/src/components/ui/Button';
 import { useEventStore } from '@/src/stores/useEventStore';
-import useRequireAuth from '@/src/hooks/useRequireAuth';
+import { useRequireRole } from '@/src/hooks/useRequireRole';
 import { ROUTES } from '@/src/lib/constants';
 
 export default function ManageEventTicketsPage() {
@@ -14,18 +14,18 @@ export default function ManageEventTicketsPage() {
   const params = useParams();
   const eventId = params.eventId as string;
 
-  const { isAuthenticated, isLoading: authLoading } = useRequireAuth();
+  const { isAuthorized, isLoading: authLoading } = useRequireRole('ADMINISTRATOR');
 
   const { currentEvent, ticketTypes, isLoading, fetchEventWithTicketTypes } = useEventStore();
 
   React.useEffect(() => {
-    if (isAuthenticated && eventId) {
+    if (isAuthorized && eventId) {
       fetchEventWithTicketTypes(eventId).catch(() => {
         toast.error('Error al cargar el evento y los tickets');
         router.push(ROUTES.ADMIN + '/events');
       });
     }
-  }, [isAuthenticated, eventId, fetchEventWithTicketTypes, router]);
+  }, [isAuthorized, eventId, fetchEventWithTicketTypes, router]);
 
   const handleGoBack = () => {
     router.push(ROUTES.ADMIN + '/events');
@@ -39,7 +39,7 @@ export default function ManageEventTicketsPage() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthorized) {
     return null;
   }
 

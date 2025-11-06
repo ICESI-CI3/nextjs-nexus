@@ -7,6 +7,7 @@ import { useCategoryStore } from '@/src/stores/useCategoryStore';
 import { useVenueStore } from '@/src/stores/useVenueStore';
 import { ROUTES } from '@/src/lib/constants';
 import { EventStatus } from '@/src/lib/types';
+import { useRequireRole } from '@/src/hooks/useRequireRole';
 
 interface StatCardProps {
   title: string;
@@ -92,16 +93,28 @@ function QuickAction({ title, description, icon, onClick, color }: QuickActionPr
 }
 
 export default function AdminDashboardPage() {
+  const { isLoading: authLoading, isAuthorized } = useRequireRole('ADMINISTRATOR');
   const router = useRouter();
   const { events, fetchEvents } = useEventStore();
   const { categories, fetchCategories } = useCategoryStore();
   const { venues, fetchVenues } = useVenueStore();
 
   React.useEffect(() => {
+    if (!isAuthorized) return;
     fetchEvents({ page: 1, limit: 100 }).catch(() => {});
     fetchCategories().catch(() => {});
     fetchVenues().catch(() => {});
-  }, [fetchEvents, fetchCategories, fetchVenues]);
+  }, [isAuthorized, fetchEvents, fetchCategories, fetchVenues]);
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-slate-600">Cargando...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) return null;
 
   const activeEvents = events.filter((e) => e.status === EventStatus.ACTIVE).length;
   const totalEvents = events.length;

@@ -90,17 +90,6 @@ export default function Navbar() {
 
             {user && (
               <>
-                <Link
-                  href="/dashboard"
-                  className={`text-sm transition-colors ${
-                    isActivePath(pathname, '/dashboard')
-                      ? 'font-semibold text-blue-600'
-                      : 'text-gray-700 hover:text-blue-600'
-                  }`}
-                >
-                  Dashboard
-                </Link>
-
                 {/* Admin solo con permiso */}
                 <Can permission="VIEW_USERS">
                   <Link

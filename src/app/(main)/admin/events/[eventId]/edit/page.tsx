@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import EventForm from '@/src/components/events/EventForm';
 import { useEventStore } from '@/src/stores/useEventStore';
-import useRequireAuth from '@/src/hooks/useRequireAuth';
+import { useRequireRole } from '@/src/hooks/useRequireRole';
 import { ROUTES } from '@/src/lib/constants';
 import type { CreateEventDTO } from '@/src/lib/types';
 
@@ -14,18 +14,18 @@ export default function EditEventPage() {
   const params = useParams();
   const eventId = params.eventId as string;
 
-  const { isAuthenticated, isLoading: authLoading } = useRequireAuth();
+  const { isAuthorized, isLoading: authLoading } = useRequireRole('ADMINISTRATOR');
 
   const { currentEvent, isLoading, fetchEventById, updateEvent } = useEventStore();
 
   React.useEffect(() => {
-    if (isAuthenticated && eventId) {
+    if (isAuthorized && eventId) {
       fetchEventById(eventId).catch(() => {
         toast.error('Error al cargar el evento');
         router.push(ROUTES.ADMIN_EVENTS);
       });
     }
-  }, [isAuthenticated, eventId, fetchEventById, router]);
+  }, [isAuthorized, eventId, fetchEventById, router]);
 
   const handleSubmit = async (data: CreateEventDTO) => {
     try {
@@ -50,7 +50,7 @@ export default function EditEventPage() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthorized) {
     return null;
   }
 

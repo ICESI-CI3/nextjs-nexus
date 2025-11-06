@@ -71,9 +71,9 @@ export function useRequireRole(requiredRole: string) {
     // Esperar roles
     if (!rolesResolved) return;
 
-    // Autenticado sin rol → dashboard
+    // Autenticado sin rol → events (pantalla principal)
     if (!hasRole) {
-      if (pathname !== ROUTES.DASHBOARD) router.replace(ROUTES.DASHBOARD);
+      if (pathname !== ROUTES.EVENTS) router.replace(ROUTES.EVENTS);
       return;
     }
   }, [authReady, isAuthenticated, rolesResolved, hasRole, router, pathname]);

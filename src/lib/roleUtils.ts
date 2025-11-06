@@ -87,10 +87,10 @@ export function getHighestPriorityRole(roles: string[]): GenericRole | null {
 /**
  * Gets the redirect URL for a given role
  * @param role - Role name
- * @returns Redirect URL, or '/dashboard' as fallback
+ * @returns Redirect URL, or '/events' as fallback
  */
 export function getRedirectByRole(role: string | null): string {
-  if (!role) return '/dashboard';
+  if (!role) return '/events';
 
   const normalized = normalizeRole(role);
 
@@ -98,7 +98,7 @@ export function getRedirectByRole(role: string | null): string {
     return ROLE_REDIRECTS[normalized as GenericRole];
   }
 
-  return '/dashboard';
+  return '/events';
 }
 
 /**

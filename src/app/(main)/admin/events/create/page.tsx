@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import EventForm from '@/src/components/events/EventForm';
 import { useEventStore } from '@/src/stores/useEventStore';
-import useRequireAuth from '@/src/hooks/useRequireAuth';
+import { useRequireRole } from '@/src/hooks/useRequireRole';
 import { ROUTES } from '@/src/lib/constants';
 import type { CreateEventDTO } from '@/src/lib/types';
 
 export default function CreateEventPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useRequireAuth();
+  const { isAuthorized, isLoading: authLoading } = useRequireRole('ADMINISTRATOR');
 
   const { createEvent, isLoading } = useEventStore();
 
@@ -38,7 +38,7 @@ export default function CreateEventPage() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthorized) {
     return null;
   }
 
