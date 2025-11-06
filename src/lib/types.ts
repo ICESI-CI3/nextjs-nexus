@@ -39,20 +39,21 @@ export enum PaymentStatus {
 /**
  * Role type - matches backend ResponseRoleDto
  */
-// ...resto de tus imports y tipos
-
 export interface Role {
   id: string;
   name: string;
   description?: string;
-  permissionIds: string[];
+  permissionIds?: string[]; // Optional when coming from backend with full permissions
   isGeneric?: boolean; // <- visible en lecturas, NO se envía
+  permissions?: Array<{
+    id: string;
+    name: string;
+  }>;
 }
 
 /**
- * User type - matches backend ResponseUserDto
+ * User type - matches backend ResponseUserDto and ProfileResponseDto
  */
-/** User - coincide con ResponseUserDto del backend */
 export interface User {
   id: string;
   firstName: string;
@@ -60,10 +61,8 @@ export interface User {
   email: string;
   twoFactorEnabled?: boolean;
   createdAt: Date | string;
-
-  roleIds?: string[];
+  roleIds: string[];
   roles?: Role[];
-
   isBlocked?: boolean;
   isBloqued?: boolean;
 }
