@@ -11,12 +11,11 @@ import { ROUTES } from '@/src/lib/constants';
 import authService from '@/src/services/authService';
 import useAuth from '@/src/hooks/useAuth';
 
-type LoginValues = z.infer<typeof authSchemas.login> & { rememberMe: boolean };
+type LoginValues = z.infer<typeof authSchemas.login>;
 
 const INITIAL_VALUES: LoginValues = {
   email: '',
   password: '',
-  rememberMe: false,
 };
 
 export default function LoginForm() {
@@ -30,7 +29,7 @@ export default function LoginForm() {
   const { setTokens, fetchProfile } = useAuth();
 
   const handleChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
 
     // Clear errors when user starts typing
     setGeneralError('');
@@ -38,7 +37,7 @@ export default function LoginForm() {
 
     setValues((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: value,
     }));
   }, []);
 
@@ -164,12 +163,14 @@ export default function LoginForm() {
           <label htmlFor="password" className="block text-sm font-medium text-slate-700">
             Contraseña
           </label>
-          <Link
-            href="/forgot-password"
-            className="text-xs text-slate-600 transition-colors hover:text-slate-800"
+          <button
+            type="button"
+            onClick={(e) => e.preventDefault()}
+            className="cursor-not-allowed text-xs text-slate-600 opacity-60 transition-colors hover:text-slate-800"
+            disabled
           >
             ¿Olvidaste tu contraseña?
-          </Link>
+          </button>
         </div>
         <input
           id="password"
@@ -194,22 +195,6 @@ export default function LoginForm() {
             {errors.password}
           </p>
         )}
-      </div>
-
-      {/* Remember Me Checkbox */}
-      <div className="flex items-center gap-2">
-        <input
-          id="rememberMe"
-          name="rememberMe"
-          type="checkbox"
-          checked={values.rememberMe}
-          onChange={handleChange}
-          disabled={isSubmitting}
-          className="h-4 w-4 rounded border-slate-300 text-slate-800 transition-colors focus:ring-slate-600 disabled:cursor-not-allowed"
-        />
-        <label htmlFor="rememberMe" className="text-sm text-slate-700">
-          Recordarme
-        </label>
       </div>
 
       {/* Submit Button */}

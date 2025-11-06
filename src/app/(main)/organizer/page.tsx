@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useEventStore } from '@/src/stores/useEventStore';
+import { useRequireRole } from '@/src/hooks/useRequireRole';
 import { ROUTES } from '@/src/lib/constants';
 import { EventStatus } from '@/src/lib/types';
 
@@ -92,12 +93,27 @@ function QuickAction({ title, description, icon, onClick, color }: QuickActionPr
 
 export default function OrganizerDashboardPage() {
   const router = useRouter();
+  const { isAuthorized, isLoading: authLoading } = useRequireRole('ORGANIZER');
   const { events, fetchEvents } = useEventStore();
 
   React.useEffect(() => {
     // Fetch only organizer's own events
-    fetchEvents({ page: 1, limit: 100 }).catch(() => {});
-  }, [fetchEvents]);
+    if (isAuthorized) {
+      fetchEvents({ page: 1, limit: 100 }).catch(() => {});
+    }
+  }, [isAuthorized, fetchEvents]);
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-sm text-slate-500">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   // Calculate statistics for organizer's events
   const draftEvents = events.filter((e) => e.status === EventStatus.DRAFT).length;

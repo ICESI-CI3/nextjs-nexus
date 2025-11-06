@@ -2,17 +2,21 @@
 
 import * as React from 'react';
 import { useEventStore } from '@/src/stores/useEventStore';
+import { useRequireRole } from '@/src/hooks/useRequireRole';
 import { EventStatus } from '@/src/lib/types';
 import { showToast } from '@/src/lib/toast';
 
 export default function OrganizerCommentsPage() {
+  const { isAuthorized, isLoading: authLoading } = useRequireRole('ORGANIZER');
   const { events, isLoading, fetchEvents } = useEventStore();
 
   React.useEffect(() => {
-    fetchEvents({ page: 1, limit: 1000 }).catch(() => {
-      showToast.error('Error al cargar los eventos.');
-    });
-  }, [fetchEvents]);
+    if (isAuthorized) {
+      fetchEvents({ page: 1, limit: 1000 }).catch(() => {
+        showToast.error('Error al cargar los eventos.');
+      });
+    }
+  }, [isAuthorized, fetchEvents]);
 
   const relevantEvents = events.filter(
     (event) =>
@@ -21,12 +25,16 @@ export default function OrganizerCommentsPage() {
       event.status === EventStatus.CANCELLED
   );
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <p className="text-sm text-slate-500">Cargando comentarios...</p>
       </div>
     );
+  }
+
+  if (!isAuthorized) {
+    return null;
   }
 
   return (

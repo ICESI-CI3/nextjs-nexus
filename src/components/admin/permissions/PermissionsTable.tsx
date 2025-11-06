@@ -20,9 +20,6 @@ export default function PermissionsTable({ permissions }: PermissionsTableProps)
                 Nombre
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase">
-                Código
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-slate-500 uppercase">
                 Descripción
               </th>
             </tr>
@@ -31,9 +28,6 @@ export default function PermissionsTable({ permissions }: PermissionsTableProps)
             {rows.map((p) => (
               <tr key={p.id} className="transition-colors hover:bg-slate-50/50">
                 <td className="px-6 py-4 text-sm whitespace-nowrap text-slate-900">{p.name}</td>
-                <td className="px-6 py-4 font-mono text-xs whitespace-nowrap text-slate-600">
-                  {p.code}
-                </td>
                 <td className="px-6 py-4 text-sm text-slate-600">
                   {p.description || <span className="text-slate-400">Sin descripción</span>}
                 </td>
@@ -42,7 +36,7 @@ export default function PermissionsTable({ permissions }: PermissionsTableProps)
 
             {rows.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-6 py-12 text-center text-sm text-slate-500">
+                <td colSpan={2} className="px-6 py-12 text-center text-sm text-slate-500">
                   No hay permisos para mostrar.
                 </td>
               </tr>

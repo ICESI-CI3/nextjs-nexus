@@ -25,7 +25,6 @@ export default function TicketValidationForm() {
 
   const scannerRef = React.useRef<Html5Qrcode | null>(null);
   const isRunningRef = React.useRef(false);
-  const isMountedRef = React.useRef(false);
 
   // Cleanup on page unload/reload
   React.useEffect(() => {
@@ -103,39 +102,50 @@ export default function TicketValidationForm() {
 
   // Cleanup scanner on unmount or mode change
   React.useEffect(() => {
-    // Prevent double mounting in StrictMode
-    if (isMountedRef.current) {
-      return;
-    }
-
     let html5QrCode: Html5Qrcode | null = null;
+    let isComponentMounted = true;
+
+    const stopAllVideoStreams = () => {
+      const qrReaderElement = document.getElementById('qr-reader');
+      if (qrReaderElement) {
+        const videos = qrReaderElement.querySelectorAll('video');
+        videos.forEach((video) => {
+          if (video.srcObject) {
+            const stream = video.srcObject as MediaStream;
+            stream.getTracks().forEach((track) => {
+              track.stop();
+              track.enabled = false;
+            });
+            video.srcObject = null;
+          }
+        });
+        qrReaderElement.innerHTML = '';
+      }
+    };
 
     const startScanner = async () => {
+      // Prevent starting scanner if component is already unmounted
+      if (!isComponentMounted) return;
+
       try {
         setError('');
         setResult(null);
 
-        // Clear any existing content in the qr-reader div
-        const qrReaderElement = document.getElementById('qr-reader');
-        if (qrReaderElement) {
-          // Stop any existing video streams
-          const existingVideos = qrReaderElement.querySelectorAll('video');
-          existingVideos.forEach((video) => {
-            if (video.srcObject) {
-              const stream = video.srcObject as MediaStream;
-              stream.getTracks().forEach((track) => {
-                track.stop();
-                track.enabled = false;
-              });
-              video.srcObject = null;
-            }
-          });
-          // Clear all children
-          qrReaderElement.innerHTML = '';
+        // Stop any existing scanner first
+        if (scannerRef.current && isRunningRef.current) {
+          isRunningRef.current = false;
+          await scannerRef.current.stop().catch(() => {});
+          scannerRef.current.clear();
         }
+
+        // Stop all video streams
+        stopAllVideoStreams();
 
         // Small delay to ensure cleanup completes
         await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Check again if component is still mounted
+        if (!isComponentMounted) return;
 
         html5QrCode = new Html5Qrcode('qr-reader');
         scannerRef.current = html5QrCode;
@@ -148,9 +158,10 @@ export default function TicketValidationForm() {
           },
           async (decodedText: string) => {
             // Stop scanner and validate ticket
-            if (html5QrCode && isRunningRef.current) {
+            if (html5QrCode && isRunningRef.current && isComponentMounted) {
               isRunningRef.current = false;
-              await html5QrCode.stop();
+              await html5QrCode.stop().catch(() => {});
+              stopAllVideoStreams();
               await handleValidation(decodedText);
             }
           },
@@ -159,59 +170,50 @@ export default function TicketValidationForm() {
           }
         );
 
-        isRunningRef.current = true;
-        isMountedRef.current = true;
-        setIsScanning(true);
+        if (isComponentMounted) {
+          isRunningRef.current = true;
+          setIsScanning(true);
+        }
       } catch (err) {
         console.error('Error starting scanner:', err);
-        setError('No se pudo iniciar la cámara. Verifica los permisos.');
-        isRunningRef.current = false;
-        setIsScanning(false);
+        if (isComponentMounted) {
+          setError('No se pudo iniciar la cámara. Verifica los permisos.');
+          isRunningRef.current = false;
+          setIsScanning(false);
+        }
       }
     };
 
     if (mode === 'scanner') {
       startScanner();
+    } else {
+      // If switching away from scanner mode, clean up immediately
+      stopAllVideoStreams();
+      setIsScanning(false);
     }
 
-    // Cleanup function
+    // Cleanup function - runs when component unmounts or mode changes
     return () => {
-      isMountedRef.current = false;
+      isComponentMounted = false;
 
-      if (html5QrCode && isRunningRef.current) {
-        isRunningRef.current = false;
-        html5QrCode
-          .stop()
-          .then(() => {
-            html5QrCode?.clear();
-            // Extra cleanup for video streams
-            const qrReaderElement = document.getElementById('qr-reader');
-            if (qrReaderElement) {
-              const videos = qrReaderElement.querySelectorAll('video');
-              videos.forEach((video) => {
-                if (video.srcObject) {
-                  const stream = video.srcObject as MediaStream;
-                  stream.getTracks().forEach((track) => {
-                    track.stop();
-                    track.enabled = false;
-                  });
-                  video.srcObject = null;
-                }
-              });
-            }
-          })
-          .catch((err: unknown) => {
+      const cleanup = async () => {
+        if (html5QrCode && isRunningRef.current) {
+          isRunningRef.current = false;
+          try {
+            await html5QrCode.stop();
+            html5QrCode.clear();
+          } catch (err) {
             console.error('Error stopping scanner:', err);
-          })
-          .finally(() => {
-            scannerRef.current = null;
-            setIsScanning(false);
-          });
-      } else {
-        // Scanner not running, just clean up references
+          }
+        }
+
+        // Always stop video streams on cleanup
+        stopAllVideoStreams();
         scannerRef.current = null;
         setIsScanning(false);
-      }
+      };
+
+      cleanup();
     };
   }, [mode]);
 
@@ -389,9 +391,8 @@ export default function TicketValidationForm() {
             setManualCode('');
             // Force scanner restart by toggling mode
             if (mode === 'scanner') {
-              isMountedRef.current = false;
               setMode('manual');
-              setTimeout(() => setMode('scanner'), 0);
+              setTimeout(() => setMode('scanner'), 100);
             }
           }}
           className="w-full"

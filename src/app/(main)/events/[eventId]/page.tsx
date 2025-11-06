@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEventStore } from '@/src/stores/useEventStore';
 import { useCartStore } from '@/src/stores/useCartStore';
+import { useAuthStore } from '@/src/stores/useAuthStore';
 import { showToast } from '@/src/lib/toast';
 import EventStatusBadge from '@/src/components/events/EventStatusBadge';
 
@@ -22,6 +23,10 @@ export default function EventDetailPage() {
     useEventStore();
 
   const { addItem } = useCartStore();
+  const user = useAuthStore((s) => s.user);
+
+  // Verificar si el usuario tiene el rol BUYER
+  const hasBuyerRole = user?.roles?.some((role) => role.name === 'BUYER') ?? false;
 
   // Track quantities for each ticket type
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -142,9 +147,11 @@ export default function EventDetailPage() {
     minute: '2-digit',
   });
 
-  // Check if event allows purchases
+  // Check if event allows purchases and user can buy
   const canPurchase =
-    event.status === EventStatus.ACTIVE || event.status === EventStatus.IN_PROGRESS;
+    (event.status === EventStatus.ACTIVE || event.status === EventStatus.IN_PROGRESS) &&
+    user &&
+    hasBuyerRole;
 
   return (
     <div className="min-h-screen bg-white">
@@ -287,66 +294,82 @@ export default function EventDetailPage() {
                         </span>
                       </div>
 
-                      {canPurchase && ticketType.quantity > 0 ? (
-                        <div className="space-y-2">
-                          {/* Quantity selector */}
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() =>
-                                handleQuantityChange(
-                                  ticketType.id,
-                                  (quantities[ticketType.id] || 1) - 1
-                                )
-                              }
-                              disabled={(quantities[ticketType.id] || 1) <= 1}
-                              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              -
-                            </button>
-                            <span className="w-12 text-center font-medium">
-                              {quantities[ticketType.id] || 1}
-                            </span>
-                            <button
-                              onClick={() =>
-                                handleQuantityChange(
-                                  ticketType.id,
-                                  (quantities[ticketType.id] || 1) + 1
-                                )
-                              }
-                              disabled={(quantities[ticketType.id] || 1) >= ticketType.quantity}
-                              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              +
-                            </button>
-                          </div>
+                      {ticketType.quantity > 0 ? (
+                        <>
+                          {canPurchase ? (
+                            <div className="space-y-2">
+                              {/* Quantity selector */}
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() =>
+                                    handleQuantityChange(
+                                      ticketType.id,
+                                      (quantities[ticketType.id] || 1) - 1
+                                    )
+                                  }
+                                  disabled={(quantities[ticketType.id] || 1) <= 1}
+                                  className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  -
+                                </button>
+                                <span className="w-12 text-center font-medium">
+                                  {quantities[ticketType.id] || 1}
+                                </span>
+                                <button
+                                  onClick={() =>
+                                    handleQuantityChange(
+                                      ticketType.id,
+                                      (quantities[ticketType.id] || 1) + 1
+                                    )
+                                  }
+                                  disabled={(quantities[ticketType.id] || 1) >= ticketType.quantity}
+                                  className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  +
+                                </button>
+                              </div>
 
-                          {/* Add to cart button */}
-                          <button
-                            onClick={() => handleAddToCart(ticketType.id)}
-                            disabled={addingToCart[ticketType.id]}
-                            className="w-full rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {addingToCart[ticketType.id] ? 'Agregando...' : 'Agregar al carrito'}
-                          </button>
-                        </div>
+                              {/* Add to cart button */}
+                              <button
+                                onClick={() => handleAddToCart(ticketType.id)}
+                                disabled={addingToCart[ticketType.id]}
+                                className="w-full rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {addingToCart[ticketType.id]
+                                  ? 'Agregando...'
+                                  : 'Agregar al carrito'}
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {/* Mostrar botón según estado del usuario */}
+                              <button
+                                onClick={() => {
+                                  if (!user) {
+                                    router.push('/login');
+                                  } else {
+                                    showToast.error(
+                                      'Solo usuarios con rol Comprador pueden agregar al carrito'
+                                    );
+                                  }
+                                }}
+                                className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
+                              >
+                                {!user ? 'Iniciar sesión para comprar' : 'Requiere rol Comprador'}
+                              </button>
+                            </div>
+                          )}
+                        </>
                       ) : (
                         <button
                           disabled
                           className="w-full cursor-not-allowed rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slate-800 opacity-60"
                         >
-                          {!canPurchase ? 'No disponible' : 'Agotado'}
+                          Agotado
                         </button>
                       )}
                     </div>
                   ))}
-                </div>
-              )}
-
-              {!canPurchase && (
-                <div className="mt-4 rounded-lg bg-slate-50 p-3 text-center">
-                  <p className="text-sm font-medium text-slate-800">
-                    Este evento no esta disponible para compra en este momento.
-                  </p>
                 </div>
               )}
             </div>

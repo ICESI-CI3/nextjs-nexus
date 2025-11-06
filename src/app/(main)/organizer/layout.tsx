@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/src/hooks/useAuth';
-import useRequireAuth from '@/src/hooks/useRequireAuth';
+import { useRequireRole } from '@/src/hooks/useRequireRole';
 
 interface NavItem {
   name: string;
@@ -88,7 +88,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user } = useAuth();
-  const { isAuthenticated, isLoading } = useRequireAuth();
+  const { isAuthorized, isLoading } = useRequireRole('ORGANIZER');
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   if (isLoading) {
@@ -99,7 +99,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthorized) {
     return null;
   }
 

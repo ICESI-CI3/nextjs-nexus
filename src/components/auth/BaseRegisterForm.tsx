@@ -131,6 +131,7 @@ export default function BaseRegisterForm({
 
       try {
         setIsSubmitting(true);
+        console.log('[BaseRegisterForm] Submitting form in mode:', mode);
 
         await onSubmit({
           firstName: values.firstName,
@@ -140,29 +141,38 @@ export default function BaseRegisterForm({
           roleIds: [values.selectedRoleId],
         });
 
-        // Éxito en UI del formulario (no toast)
-        setSuccessMessage(
-          mode === 'public' ? '¡Cuenta creada exitosamente!' : 'Usuario registrado exitosamente'
-        );
-        // auto-cierre luego de ~15s
-        if (successTimerRef.current) {
-          window.clearTimeout(successTimerRef.current);
-        }
-        successTimerRef.current = window.setTimeout(() => {
-          setSuccessMessage('');
-        }, 15000);
+        console.log('[BaseRegisterForm] onSubmit completed successfully');
 
-        // Resetear form si es admin
+        // Éxito en UI del formulario solo para modo admin
+        // En modo público, el registro hace login automático y redirige
         if (mode === 'admin') {
+          console.log('[BaseRegisterForm] Admin mode - showing success message');
+          setSuccessMessage('Usuario registrado exitosamente');
+          // auto-cierre luego de ~15s
+          if (successTimerRef.current) {
+            window.clearTimeout(successTimerRef.current);
+          }
+          successTimerRef.current = window.setTimeout(() => {
+            setSuccessMessage('');
+          }, 15000);
+
+          // Resetear form
           setValues(INITIAL_VALUES);
           const buyerRole = roles.find((r) => r.name === 'BUYER');
           if (buyerRole) {
             setValues((prev) => ({ ...prev, selectedRoleId: buyerRole.id }));
           }
-        }
 
-        onSuccess?.();
+          onSuccess?.();
+          setIsSubmitting(false);
+        } else {
+          // En modo público, mantener el estado de carga mientras se redirige
+          // El formulario permanecerá con el botón deshabilitado hasta que la redirección ocurra
+          console.log('[BaseRegisterForm] Public mode - keeping loading state for redirect');
+          onSuccess?.();
+        }
       } catch (err) {
+        console.error('[BaseRegisterForm] Error caught:', err);
         const error = err as {
           message?: string;
           response?: { data?: { message?: string | string[] }; status?: number };
@@ -179,11 +189,11 @@ export default function BaseRegisterForm({
           errorMessage = error.message;
         }
 
+        console.error('[BaseRegisterForm] Setting error message:', errorMessage);
         setGeneralError(errorMessage);
         setSuccessMessage('');
-        // NO mostrar toast aquí porque ya mostramos el error en el formulario
-      } finally {
         setIsSubmitting(false);
+        // NO mostrar toast aquí porque ya mostramos el error en el formulario
       }
     },
     [values, roles, mode, onSubmit, onSuccess]
@@ -257,33 +267,31 @@ export default function BaseRegisterForm({
 
   if (isLoadingRoles) {
     return (
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
-        <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900" />
-        </div>
+      <div className="flex items-center justify-center py-12">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900" />
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
-      {/* Logo y Header (alineado e idéntico al de Login) */}
-      <div className="mb-6 flex flex-col items-center text-center">
-        <div className="mb-3 flex items-center justify-center">
-          {/* Logo oficial proporcionado por el equipo */}
-          <Image
-            src="/logo.svg"
-            alt="TicketHub"
-            className="h-10 w-auto"
-            width={144}
-            height={40}
-            priority
-          />
+    <>
+      {/* Logo y Header solo para modo admin */}
+      {mode === 'admin' && (
+        <div className="mb-6 flex flex-col items-center text-center">
+          <div className="mb-3 flex items-center justify-center">
+            {/* Logo oficial proporcionado por el equipo */}
+            <Image
+              src="/logo.svg"
+              alt="TicketHub"
+              className="h-10 w-auto"
+              width={144}
+              height={40}
+              priority
+            />
+          </div>
+          <h1 className="text-2xl font-semibold text-slate-900">Registrar nuevo usuario</h1>
         </div>
-        <h1 className="text-2xl font-semibold text-slate-900">
-          {mode === 'public' ? 'Crea tu cuenta' : 'Registrar nuevo usuario'}
-        </h1>
-      </div>
+      )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {generalError && <FormError message={generalError} />}
@@ -481,6 +489,6 @@ export default function BaseRegisterForm({
           </>
         )}
       </form>
-    </div>
+    </>
   );
 }

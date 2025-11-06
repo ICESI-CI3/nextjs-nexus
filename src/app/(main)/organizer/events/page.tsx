@@ -7,13 +7,13 @@ import EventList from '@/src/components/events/EventList';
 import ConfirmDialog from '@/src/components/ui/ConfirmDialog';
 import Button from '@/src/components/ui/Button';
 import { useEventStore } from '@/src/stores/useEventStore';
-import useRequireAuth from '@/src/hooks/useRequireAuth';
+import { useRequireRole } from '@/src/hooks/useRequireRole';
 import { Event, EventStatus } from '@/src/lib/types';
 import SuspensionCancellationModal from '@/src/components/events/SuspensionCancellationModal';
 
 export default function OrganizerEventsPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useRequireAuth();
+  const { isAuthorized, isLoading: authLoading } = useRequireRole('ORGANIZER');
 
   const {
     events,
@@ -39,12 +39,12 @@ export default function OrganizerEventsPage() {
   const [isProcessingStatusChange, setIsProcessingStatusChange] = React.useState(false);
 
   React.useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthorized) {
       fetchEvents({ page: 1, limit: 10 }).catch(() => {
         toast.error('Error al cargar eventos');
       });
     }
-  }, [isAuthenticated, fetchEvents]);
+  }, [isAuthorized, fetchEvents]);
 
   const handlePageChange = React.useCallback(
     (page: number) => {
@@ -136,7 +136,7 @@ export default function OrganizerEventsPage() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthorized) {
     return null;
   }
 

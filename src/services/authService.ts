@@ -255,19 +255,26 @@ async function register(data: {
   password: string;
   roleIds: string[];
 }): Promise<LoginResult> {
+  console.log('[authService] Sending registration request to /auth/register');
   const response = await apiClient.post<TokensResponse | Requires2FAResponse>(
     '/auth/register',
     data
   );
 
+  console.log('[authService] Registration response received:', response.data);
   const result = response.data;
 
   if ('requires2FA' in result && result.requires2FA) {
+    console.log('[authService] Response indicates 2FA is required');
     return { requires2FA: true };
   }
 
   const tokens = result as TokensResponse;
+  console.log('[authService] Tokens received - access_token exists:', !!tokens.access_token);
+  console.log('[authService] Tokens received - refresh_token exists:', !!tokens.refresh_token);
+
   persistTokens(tokens.access_token, tokens.refresh_token);
+  console.log('[authService] Tokens persisted successfully');
 
   return {
     requires2FA: false,
