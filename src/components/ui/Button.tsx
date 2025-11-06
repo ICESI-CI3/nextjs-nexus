@@ -4,7 +4,7 @@ import * as React from 'react';
 import { cn } from '@/src/lib/utils';
 
 export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'success' | 'danger';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'success' | 'danger' | 'info' | 'neutral';
   size?: 'sm' | 'md';
   fullWidth?: boolean;
 };
@@ -27,6 +27,8 @@ export default function Button({
     ghost: 'bg-transparent text-slate-800 hover:bg-slate-100 focus-visible:ring-slate-300',
     success: 'bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-400',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-400',
+    info: 'bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-400',
+    neutral: 'bg-gray-300 text-gray-800 hover:bg-gray-400 focus-visible:ring-gray-200',
   };
 
   const sizes: Record<NonNullable<ButtonProps['size']>, string> = {

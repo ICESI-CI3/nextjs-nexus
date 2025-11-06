@@ -14,7 +14,7 @@ interface NavItem {
 const navigation: NavItem[] = [
   {
     name: 'Dashboard',
-    href: '/admin',
+    href: '/organizer',
     icon: (
       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -27,8 +27,8 @@ const navigation: NavItem[] = [
     ),
   },
   {
-    name: 'Eventos',
-    href: '/admin/events',
+    name: 'Mis Eventos',
+    href: '/organizer/events',
     icon: (
       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -42,7 +42,7 @@ const navigation: NavItem[] = [
   },
   {
     name: 'Categorías',
-    href: '/admin/categories',
+    href: '/organizer/categories',
     icon: (
       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -56,7 +56,7 @@ const navigation: NavItem[] = [
   },
   {
     name: 'Recintos',
-    href: '/admin/venues',
+    href: '/organizer/venues',
     icon: (
       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -70,7 +70,7 @@ const navigation: NavItem[] = [
   },
   {
     name: 'Comentarios',
-    href: '/admin/comments',
+    href: '/organizer/comments',
     icon: (
       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -84,7 +84,7 @@ const navigation: NavItem[] = [
   },
 ];
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function OrganizerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user } = useAuth();
@@ -104,7 +104,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const isActive = (href: string) => {
-    if (href === '/admin') {
+    if (href === '/organizer') {
       return pathname === href;
     }
     return pathname.startsWith(href);
@@ -133,7 +133,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
                 <span className="text-lg font-bold text-white">T</span>
               </div>
-              <span className="text-lg font-semibold text-white">TicketHub</span>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
@@ -175,10 +174,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="border-t border-slate-800 p-4">
             <div className="mb-3 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-sm font-medium text-white">
-                {user?.email?.charAt(0).toUpperCase() || 'A'}
+                {user?.email?.charAt(0).toUpperCase() || 'O'}
               </div>
               <div className="flex-1 overflow-hidden">
-                <p className="truncate text-sm font-medium text-white">Admin</p>
+                <p className="truncate text-sm font-medium text-white">Organizador</p>
                 <p className="truncate text-xs text-slate-400">{user?.email}</p>
               </div>
             </div>

@@ -7,10 +7,11 @@ import Navbar from '@/src/components/layout/Navbar';
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdminPage = pathname.startsWith('/admin');
+  const isOrganizerPage = pathname.startsWith('/organizer');
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      {!isAdminPage && <Navbar />}
+      {!isAdminPage && !isOrganizerPage && <Navbar />}
       {children}
     </div>
   );

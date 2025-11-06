@@ -5,72 +5,13 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import EventList from '@/src/components/events/EventList';
 import ConfirmDialog from '@/src/components/ui/ConfirmDialog';
+import Button from '@/src/components/ui/Button';
 import { useEventStore } from '@/src/stores/useEventStore';
-import { useCategoryStore } from '@/src/stores/useCategoryStore';
 import useRequireAuth from '@/src/hooks/useRequireAuth';
-import { ROUTES } from '@/src/lib/constants';
-import type { Event, EventStatus } from '@/src/lib/types';
+import { Event, EventStatus } from '@/src/lib/types';
+import SuspensionCancellationModal from '@/src/components/events/SuspensionCancellationModal';
 
-function RejectionModal({
-  isOpen,
-  onClose,
-  onConfirm,
-  isLoading,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: (comment: string) => void;
-  isLoading: boolean;
-}) {
-  const [comment, setComment] = React.useState('');
-
-  const handleConfirm = () => {
-    if (!comment.trim()) {
-      toast.error('El comentario es obligatorio para rechazar el evento.');
-      return;
-    }
-    onConfirm(comment);
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-        <h2 className="mb-4 text-xl font-bold text-slate-900">Rechazar Evento</h2>
-        <p className="mb-4 text-slate-600">
-          Por favor, proporciona un motivo para rechazar este evento. Este comentario será visible
-          para el organizador.
-        </p>
-        <textarea
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          className="w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          rows={4}
-          placeholder="Ej: Faltan detalles en la descripción del evento..."
-        ></textarea>
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="rounded-md bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-300"
-            disabled={isLoading}
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleConfirm}
-            className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Rechazando...' : 'Confirmar Rechazo'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function AdminEventsPage() {
+export default function OrganizerEventsPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useRequireAuth();
 
@@ -87,9 +28,15 @@ export default function AdminEventsPage() {
   const [deleteEventId, setDeleteEventId] = React.useState<string | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
 
-  const [rejectionEventId, setRejectionEventId] = React.useState<string | null>(null);
-  const [isRejectionModalOpen, setRejectionModalOpen] = React.useState(false);
-  const [isRejecting, setIsRejecting] = React.useState(false);
+  const [suspensionCancellationEventId, setSuspensionCancellationEventId] = React.useState<
+    string | null
+  >(null);
+  const [isSuspensionCancellationModalOpen, setIsSuspensionCancellationModalOpen] =
+    React.useState(false);
+  const [suspensionCancellationStatusType, setSuspensionCancellationStatusType] = React.useState<
+    'SUSPENDED' | 'CANCELLED' | null
+  >(null);
+  const [isProcessingStatusChange, setIsProcessingStatusChange] = React.useState(false);
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -108,12 +55,16 @@ export default function AdminEventsPage() {
     [fetchEvents]
   );
 
+  const handleCreate = () => {
+    router.push('/organizer/events/create');
+  };
+
   const handleEdit = (id: string) => {
-    router.push(ROUTES.ADMIN_EVENT_EDIT(id));
+    router.push(`/organizer/events/${id}/edit`);
   };
 
   const handleManageTickets = (id: string) => {
-    router.push(ROUTES.ADMIN_EVENT_TICKETS(id));
+    router.push(`/organizer/events/${id}/tickets`);
   };
 
   const handleDelete = (id: string) => {
@@ -136,6 +87,13 @@ export default function AdminEventsPage() {
   };
 
   const handleChangeStatus = async (id: string, status: EventStatus) => {
+    if (status === EventStatus.SUSPENDED || status === EventStatus.CANCELLED) {
+      setSuspensionCancellationEventId(id);
+      setSuspensionCancellationStatusType(status);
+      setIsSuspensionCancellationModalOpen(true);
+      return;
+    }
+
     try {
       await updateEventStatus(id, status);
       toast.success('Estado del evento actualizado');
@@ -145,29 +103,29 @@ export default function AdminEventsPage() {
     }
   };
 
-  const handleReject = (id: string) => {
-    setRejectionEventId(id);
-    setRejectionModalOpen(true);
-  };
-
-  const confirmRejection = async (comment: string) => {
-    if (!rejectionEventId) return;
+  const confirmSuspensionCancellation = async (comment: string) => {
+    if (!suspensionCancellationEventId || !suspensionCancellationStatusType) return;
 
     try {
-      setIsRejecting(true);
-      await updateEventStatus(rejectionEventId, 'REJECTED' as EventStatus, comment);
-      toast.success('Evento rechazado con éxito');
-      setRejectionModalOpen(false);
-      setRejectionEventId(null);
+      setIsProcessingStatusChange(true);
+      await updateEventStatus(
+        suspensionCancellationEventId,
+        suspensionCancellationStatusType as EventStatus,
+        comment
+      );
+      toast.success('Estado del evento actualizado');
+      setIsSuspensionCancellationModalOpen(false);
+      setSuspensionCancellationEventId(null);
+      setSuspensionCancellationStatusType(null);
     } catch {
-      toast.error('Error al rechazar el evento');
+      toast.error('Error al cambiar el estado del evento');
     } finally {
-      setIsRejecting(false);
+      setIsProcessingStatusChange(false);
     }
   };
 
   const handleRowClick = (event: Event) => {
-    router.push(ROUTES.ADMIN_EVENT_DETAIL(event.id));
+    router.push(`/organizer/events/${event.id}`);
   };
 
   if (authLoading) {
@@ -185,7 +143,13 @@ export default function AdminEventsPage() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-10">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Gestión de Eventos</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Mis Eventos</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Gestiona tus eventos, configura tickets y monitorea ventas
+          </p>
+        </div>
+        <Button onClick={handleCreate}>Crear Evento</Button>
       </div>
 
       {isLoading ? (
@@ -197,7 +161,6 @@ export default function AdminEventsPage() {
           events={events}
           viewMode="table"
           showActions={true}
-          showAdminActions={true}
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={handlePageChange}
@@ -205,7 +168,6 @@ export default function AdminEventsPage() {
           onDelete={handleDelete}
           onManageTickets={handleManageTickets}
           onChangeStatus={handleChangeStatus}
-          onReject={handleReject}
           onRowClick={handleRowClick}
           emptyMessage="No tienes eventos creados. Comienza creando uno nuevo."
         />
@@ -222,11 +184,12 @@ export default function AdminEventsPage() {
         isLoading={isDeleting}
       />
 
-      <RejectionModal
-        isOpen={isRejectionModalOpen}
-        onClose={() => setRejectionModalOpen(false)}
-        onConfirm={confirmRejection}
-        isLoading={isRejecting}
+      <SuspensionCancellationModal
+        isOpen={isSuspensionCancellationModalOpen}
+        onClose={() => setIsSuspensionCancellationModalOpen(false)}
+        onConfirm={confirmSuspensionCancellation}
+        isLoading={isProcessingStatusChange}
+        statusType={suspensionCancellationStatusType!}
       />
     </div>
   );

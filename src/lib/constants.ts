@@ -48,6 +48,10 @@ export const ROUTES = {
 
   ADMIN_CATEGORIES: '/admin/categories',
   ADMIN_VENUES: '/admin/venues',
+  ADMIN_COMMENTS: '/admin/comments',
+
+  ORGANIZER_EVENTS: '/organizer/events',
+  ORGANIZER_COMMENTS: '/organizer/comments',
 
   // Add more routes based on your application needs
   // Example: USERS: '/users',

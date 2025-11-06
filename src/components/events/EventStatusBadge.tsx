@@ -62,7 +62,7 @@ export default function EventStatusBadge({ status, className }: EventStatusBadge
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+        'inline-flex min-w-[120px] items-center justify-center rounded-full px-3 py-0.5 text-center text-xs font-medium',
         config.className,
         className
       )}

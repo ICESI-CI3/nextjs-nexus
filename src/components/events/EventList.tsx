@@ -14,6 +14,7 @@ interface EventListProps {
   viewMode?: 'grid' | 'table';
   isLoading?: boolean;
   showActions?: boolean;
+  showAdminActions?: boolean; // New prop for admin-specific actions
   currentPage?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
@@ -31,6 +32,7 @@ export default function EventList({
   viewMode = 'grid',
   isLoading = false,
   showActions = false,
+  showAdminActions = false, // Default to false
   currentPage = 1,
   totalPages = 1,
   onPageChange,
@@ -85,28 +87,43 @@ export default function EventList({
         header: 'Estado',
         render: (event) => <EventStatusBadge status={event.status} />,
       },
-      createActionsColumn<Event>((event) => (
-        <div className="flex items-center justify-end gap-2">
-          {event.status === EventStatus.PENDING_APPROVAL && (
-            <>
-              <Button
-                size="sm"
-                variant="success"
-                onClick={() => handleStatusChange(event.id, EventStatus.ACTIVE)}
-                disabled={isSubmitting === `${event.id}-${EventStatus.ACTIVE}`}
-              >
-                {isSubmitting === `${event.id}-${EventStatus.ACTIVE}` ? 'Aprobando...' : 'Aprobar'}
-              </Button>
-              <Button size="sm" variant="danger" onClick={() => onReject?.(event.id)}>
-                Rechazar
-              </Button>
-            </>
-          )}
-
-          {/* Other Actions */}
-        </div>
-      )),
     ];
+
+    if (showAdminActions) {
+      columns.push(
+        createActionsColumn<Event>((event) => (
+          <div className="flex items-center justify-end gap-2">
+            {event.status === EventStatus.PENDING_APPROVAL && (
+              <>
+                <Button
+                  size="sm"
+                  variant="info"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStatusChange(event.id, EventStatus.ACTIVE);
+                  }}
+                  disabled={isSubmitting === `${event.id}-${EventStatus.ACTIVE}`}
+                >
+                  {isSubmitting === `${event.id}-${EventStatus.ACTIVE}`
+                    ? 'Aprobando...'
+                    : 'Aprobar'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="neutral"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReject?.(event.id);
+                  }}
+                >
+                  Rechazar
+                </Button>
+              </>
+            )}
+          </div>
+        ))
+      );
+    }
 
     return (
       <div className="space-y-6">
