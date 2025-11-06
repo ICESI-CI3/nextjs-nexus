@@ -83,7 +83,10 @@ export default function LoginForm() {
         try {
           await fetchProfile();
         } catch (error) {
-          console.error('Failed to fetch profile:', error);
+          // Use debug level to avoid error overlay in development
+          if (process.env.NODE_ENV !== 'production') {
+            console.debug('Failed to fetch profile:', error);
+          }
         }
 
         router.push(searchParams.get('next') || ROUTES.DASHBOARD);

@@ -32,16 +32,17 @@ export const authSchemas = {
   }),
 
   register: z.object({
-    email: z.string().email('Email inválido').max(VALIDATION.EMAIL_MAX_LENGTH),
+    firstName: z.string().min(1, 'El nombre es requerido').max(50),
+    lastName: z.string().min(1, 'El apellido es requerido').max(50),
+    email: z.string().email('Email inválido').max(255),
     password: z
       .string()
-      .min(
-        VALIDATION.PASSWORD_MIN_LENGTH,
-        `La contraseña debe tener al menos ${VALIDATION.PASSWORD_MIN_LENGTH} caracteres`
-      )
-      .max(VALIDATION.PASSWORD_MAX_LENGTH),
-    // Add more fields as required by your backend
-    // Example: username, firstName, lastName, etc.
+      .min(8, 'Mínimo 8 caracteres')
+      .max(50)
+      .regex(/[A-Z]/, 'Debe contener al menos una mayúscula')
+      .regex(/[a-z]/, 'Debe contener al menos una minúscula')
+      .regex(/[0-9]/, 'Debe contener al menos un número')
+      .regex(/[^A-Za-z0-9]/, 'Debe contener al menos un símbolo'),
   }),
 };
 
@@ -320,14 +321,32 @@ export function formatZodErrors(errors: z.ZodError): Record<string, string> {
 // ==================== LOCAL STORAGE UTILITIES ====================
 
 /**
- * Safely get item from localStorage
+ * Get item from localStorage with type safety
+ * @param key - localStorage key
+ * @param defaultValue - Default value if key doesn't exist
+ * @returns Parsed value or default
  */
 export function getLocalStorage<T>(key: string, defaultValue: T): T {
   if (typeof window === 'undefined') return defaultValue;
 
   try {
     const item = window.localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
+
+    if (item === null) return defaultValue;
+
+    // Si es un string simple (como tokens JWT), devolverlo directamente
+    // Los tokens empiezan con "eyJ" típicamente
+    if (typeof defaultValue === 'string' && item.startsWith('eyJ')) {
+      return item as T;
+    }
+
+    // Intentar parsear como JSON para objetos
+    try {
+      return JSON.parse(item) as T;
+    } catch {
+      // Si falla el parse, devolver como string
+      return item as T;
+    }
   } catch (error) {
     console.error(`Error reading localStorage key "${key}":`, error);
     return defaultValue;

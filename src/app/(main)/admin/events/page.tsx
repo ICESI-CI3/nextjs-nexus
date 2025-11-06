@@ -4,12 +4,11 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import EventList from '@/src/components/events/EventList';
-import Button from '@/src/components/ui/Button';
 import ConfirmDialog from '@/src/components/ui/ConfirmDialog';
 import { useEventStore } from '@/src/stores/useEventStore';
 import useRequireAuth from '@/src/hooks/useRequireAuth';
 import { ROUTES } from '@/src/lib/constants';
-import type { EventStatus } from '@/src/lib/types';
+import type { Event, EventStatus } from '@/src/lib/types';
 
 export default function AdminEventsPage() {
   const router = useRouter();
@@ -40,10 +39,6 @@ export default function AdminEventsPage() {
     fetchEvents({ page, limit: 10 }).catch(() => {
       toast.error('Error al cargar eventos');
     });
-  };
-
-  const handleCreate = () => {
-    router.push(ROUTES.ADMIN_EVENT_CREATE);
   };
 
   const handleEdit = (id: string) => {
@@ -82,6 +77,10 @@ export default function AdminEventsPage() {
     }
   };
 
+  const handleRowClick = (event: Event) => {
+    router.push(ROUTES.ADMIN_EVENT_DETAIL(event.id));
+  };
+
   if (authLoading || isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -97,8 +96,7 @@ export default function AdminEventsPage() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-10">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Mis Eventos</h1>
-        <Button onClick={handleCreate}>Crear Evento</Button>
+        <h1 className="text-2xl font-bold text-slate-800">Gestión de Eventos</h1>
       </div>
 
       <EventList
@@ -112,6 +110,7 @@ export default function AdminEventsPage() {
         onDelete={handleDelete}
         onManageTickets={handleManageTickets}
         onChangeStatus={handleChangeStatus}
+        onRowClick={handleRowClick}
         emptyMessage="No tienes eventos creados. Comienza creando uno nuevo."
       />
 

@@ -22,6 +22,7 @@ interface EventListProps {
   onManageTickets?: (id: string) => void;
   onChangeStatus?: (id: string, status: EventStatus) => Promise<void>;
   emptyMessage?: string;
+  onRowClick?: (event: Event) => void;
 }
 
 export default function EventList({
@@ -37,6 +38,7 @@ export default function EventList({
   onManageTickets,
   onChangeStatus,
   emptyMessage = 'No hay eventos disponibles',
+  onRowClick,
 }: EventListProps) {
   const [isSubmitting, setIsSubmitting] = React.useState<string | null>(null);
 
@@ -106,27 +108,19 @@ export default function EventList({
           )}
 
           {/* Other Actions */}
-          <Button variant="ghost" size="sm" onClick={() => onEdit?.(event.id)}>
-            Editar
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => onManageTickets?.(event.id)}>
-            Tickets
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onDelete?.(event.id)}
-            className="text-red-600 hover:bg-red-100 hover:text-red-700 focus-visible:ring-red-300"
-          >
-            Eliminar
-          </Button>
         </div>
       )),
     ];
 
     return (
       <div className="space-y-6">
-        <Table columns={columns} data={events} isLoading={isLoading} emptyMessage={emptyMessage} />
+        <Table
+          columns={columns}
+          data={events}
+          isLoading={isLoading}
+          emptyMessage={emptyMessage}
+          onRowClick={onRowClick}
+        />
         {onPageChange && totalPages > 1 && (
           <Pagination
             currentPage={currentPage}

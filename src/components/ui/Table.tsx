@@ -25,6 +25,7 @@ export interface TableProps<T> {
   sortKey?: string;
   sortOrder?: 'asc' | 'desc';
   className?: string;
+  onRowClick?: (item: T) => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,6 +38,7 @@ export default function Table<T extends Record<string, any>>({
   sortKey,
   sortOrder,
   className,
+  onRowClick,
 }: TableProps<T>) {
   const handleSort = (key: string, sortable?: boolean) => {
     if (sortable && onSort) {
@@ -111,7 +113,11 @@ export default function Table<T extends Record<string, any>>({
         />
         <tbody className="divide-y divide-slate-200 bg-white">
           {data.map((item, rowIdx) => (
-            <tr key={rowIdx} className="transition-colors hover:bg-slate-50">
+            <tr
+              key={rowIdx}
+              onClick={() => onRowClick?.(item)}
+              className={cn('transition-colors hover:bg-slate-50', onRowClick && 'cursor-pointer')}
+            >
               {columns.map((col) => (
                 <td key={col.key} className={cn('px-6 py-4 text-sm text-slate-900', col.className)}>
                   {col.render ? col.render(item) : String(item[col.key] ?? '')}

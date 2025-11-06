@@ -64,5 +64,30 @@ export const deleteRole = async (id: string): Promise<void> => {
   await apiClient.delete(`${API_ENDPOINT}/${id}`);
 };
 
-const roleService = { getRoles, getRoleById, createRole, updateRole, deleteRole };
+/**
+ * Get public roles for registration (no auth required)
+ */
+export const getPublicRoles = async (): Promise<Role[]> => {
+  const response = await apiClient.get<Role[]>('/roles/public');
+  return response.data;
+};
+
+/**
+ * Get roles for admin user creation (auth required)
+ */
+export const getAdminCreatableRoles = async (): Promise<Role[]> => {
+  const response = await apiClient.get<Role[]>('/roles/admin-creatable');
+  return response.data;
+};
+
+const roleService = {
+  getRoles,
+  getRoleById,
+  createRole,
+  updateRole,
+  deleteRole,
+  getPublicRoles,
+  getAdminCreatableRoles,
+};
+
 export default roleService;

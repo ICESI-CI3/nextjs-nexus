@@ -188,23 +188,6 @@ export default function AdminDashboardPage() {
         <h3 className="mb-4 text-lg font-semibold text-slate-900">Acciones Rápidas</h3>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <QuickAction
-            title="Crear Evento"
-            description="Agrega un nuevo evento a la plataforma"
-            icon={
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-            }
-            onClick={() => router.push(ROUTES.ADMIN_EVENT_CREATE)}
-            color="blue"
-          />
-
-          <QuickAction
             title="Gestionar Eventos"
             description="Ver y editar todos los eventos"
             icon={

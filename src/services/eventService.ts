@@ -13,6 +13,7 @@ import type {
   UpdateTicketTypeDTO,
   PaginatedResponse,
   QueryParams,
+  EventStatus,
 } from '@/src/lib/types';
 import { buildQueryString } from '@/src/lib/utils';
 
@@ -52,6 +53,13 @@ async function createEvent(data: CreateEventDTO): Promise<Event> {
  */
 async function updateEvent(id: string, data: UpdateEventDTO): Promise<Event> {
   return patch<Event, UpdateEventDTO>(`/events/${id}`, data);
+}
+
+/**
+ * Update event status (ADMIN only)
+ */
+async function updateEventStatus(id: string, status: EventStatus): Promise<Event> {
+  return patch<Event, { status: EventStatus }>(`/events/${id}/status`, { status });
 }
 
 /**
@@ -113,6 +121,7 @@ const eventService = {
   getEventById,
   createEvent,
   updateEvent,
+  updateEventStatus,
   deleteEvent,
   getTicketTypes,
   createTicketType,
@@ -129,6 +138,7 @@ export {
   getEventById,
   createEvent,
   updateEvent,
+  updateEventStatus,
   deleteEvent,
   getTicketTypes,
   createTicketType,

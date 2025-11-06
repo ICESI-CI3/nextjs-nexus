@@ -40,10 +40,13 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error: AxiosError<ApiError>) => {
-    console.error(
-      'DEBUG: Full error response from backend:',
-      JSON.stringify(error.response?.data, null, 2)
-    );
+    // Use debug level to avoid triggering error overlays/toasts in dev UIs
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(
+        'DEBUG: Full error response from backend:',
+        JSON.stringify(error.response?.data, null, 2)
+      );
+    }
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
     // Handle network errors

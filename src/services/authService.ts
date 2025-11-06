@@ -206,15 +206,81 @@ export async function disable2FA(code: string): Promise<void> {
   }
 }
 
-/** Perfil actual (usa ruta configurable si existe) */
-export async function getProfile(): Promise<User> {
-  try {
-    // apiClient ya tiene baseURL configurada
-    const { data } = await apiClient.get<User>('/auth/me');
-    return data;
-  } catch (e: unknown) {
-    throw new Error(normalizeError(e));
+/**
+ * Get current user profile
+ * Requires authentication
+ */
+async function getProfile(): Promise<User> {
+  // Call /auth/me which returns ProfileResponseDto with nested roles
+  interface ProfileResponse {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    twoFactorEnabled?: boolean;
+    roles: Array<{
+      id: string;
+      name: string;
+      permissions: Array<{ id: string; name: string }>;
+    }>;
   }
+
+  const response = await apiClient.get<ProfileResponse>('/auth/me');
+
+  // Map ProfileResponseDto to User type (extract roleIds from nested roles)
+  return {
+    id: response.data.id,
+    firstName: response.data.firstName,
+    lastName: response.data.lastName,
+    email: response.data.email,
+    twoFactorEnabled: response.data.twoFactorEnabled,
+    roleIds: response.data.roles.map((r) => r.id),
+    createdAt: new Date().toISOString(), // Not provided by /me, use current date
+  };
+}
+
+/**
+ * Register new user (public route)
+ */
+async function register(data: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  roleIds: string[];
+}): Promise<LoginResult> {
+  const response = await apiClient.post<TokensResponse | Requires2FAResponse>(
+    '/auth/register',
+    data
+  );
+
+  const result = response.data;
+
+  if ('requires2FA' in result && result.requires2FA) {
+    return { requires2FA: true };
+  }
+
+  const tokens = result as TokensResponse;
+  persistTokens(tokens.access_token, tokens.refresh_token);
+
+  return {
+    requires2FA: false,
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+  };
+}
+
+/**
+ * Create user (admin only)
+ */
+async function createUser(data: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  roleIds: string[];
+}): Promise<void> {
+  await apiClient.post('/users', data);
 }
 
 const authService = {
@@ -230,6 +296,8 @@ const authService = {
   disable2FA,
   // Profile
   getProfile,
+  register,
+  createUser,
 };
 
 export default authService;
