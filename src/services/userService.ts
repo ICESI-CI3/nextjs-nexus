@@ -36,12 +36,13 @@ export const deleteUser = async (id: string): Promise<void> => {
   await apiClient.delete(`${API_ENDPOINT}/${id}`);
 };
 
-/** Nuevo: bloquear / desbloquear usuario.
- *  Enviamos ambos nombres de propiedad para tolerar la decisión final del backend.
+/**
+ * Bloquear / Desbloquear usuario usando los endpoints dedicados del backend.
+ * No mandes isBlocked en el body porque el DTO lo rechaza.
  */
-export const toggleBlockUser = async (id: string, isBlocked: boolean): Promise<User> => {
-  const payload = { isBlocked, isBloqued: isBlocked };
-  const response = await apiClient.patch<ApiResponse<User>>(`${API_ENDPOINT}/${id}`, payload);
+export const toggleBlockUser = async (id: string, nextBlocked: boolean): Promise<User> => {
+  const url = `${API_ENDPOINT}/${id}/${nextBlocked ? 'block' : 'unblock'}`;
+  const response = await apiClient.patch<ApiResponse<User>>(url, {}); // cuerpo vacío
   return response.data.data;
 };
 
@@ -50,8 +51,8 @@ const userService = {
   getUserById,
   createUser,
   updateUser,
-  deleteUser, // lo dejo por compatibilidad, aunque ya no lo uses
-  toggleBlockUser, // nuevo
+  deleteUser,
+  toggleBlockUser,
 };
 
 export default userService;

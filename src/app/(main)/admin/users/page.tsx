@@ -23,6 +23,13 @@ function normalizeUsers(resp: unknown): User[] {
   if (hasDataArray<User>(resp)) return (resp as { data: User[] }).data;
   return [];
 }
+function apiMsg(e: unknown): string {
+  const maybe = e as { response?: { data?: { message?: unknown } } } | null;
+  const msg = maybe?.response?.data?.message;
+  if (Array.isArray(msg)) return msg.join(', ');
+  if (typeof msg === 'string') return msg;
+  return 'No se pudo actualizar el estado de bloqueo';
+}
 
 export default function AdminUsersPage() {
   const { isLoading: authLoading, isAuthorized } = useRequireRole('ADMINISTRATOR');
@@ -90,7 +97,7 @@ export default function AdminUsersPage() {
       fetchUsers();
     } catch (error) {
       console.error(error);
-      toast.error('No se pudo actualizar el estado de bloqueo');
+      toast.error(apiMsg(error));
     } finally {
       setIsBlockOpen(false);
       setSelectedUser(null);
