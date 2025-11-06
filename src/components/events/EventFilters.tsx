@@ -2,10 +2,10 @@
 
 import * as React from 'react';
 import { EventStatus } from '@/src/lib/types';
-import type { EventCategory, Venue } from '@/src/lib/types';
+import type { EventCategory, QueryParams, Venue } from '@/src/lib/types';
 import { cn } from '@/src/lib/utils';
 
-export interface EventFilters {
+export interface EventFilters extends QueryParams {
   search?: string;
   status?: EventStatus | 'all' | undefined;
   categoryId?: string;

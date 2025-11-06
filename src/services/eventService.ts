@@ -26,6 +26,7 @@ export interface EventQueryParams extends QueryParams {
   venueId?: string;
   dateFrom?: string;
   dateTo?: string;
+  organizerId?: string;
 }
 
 /**

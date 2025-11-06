@@ -256,6 +256,12 @@ export async function put<T, D = unknown>(url: string, data?: D): Promise<T> {
  */
 export async function patch<T, D = unknown>(url: string, data?: D): Promise<T> {
   const response = await apiClient.patch<T>(url, data);
+  // If the response status is 204 (No Content), return undefined or null
+  // Axios might throw an error if it expects data but gets 204,
+  // or the data property might be undefined.
+  if (response.status === 204) {
+    return undefined as T;
+  }
   return response.data;
 }
 

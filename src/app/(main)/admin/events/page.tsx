@@ -188,6 +188,7 @@ export default function AdminEventsPage() {
     try {
       await updateEventStatus(id, status);
       toast.success('Estado del evento actualizado');
+      await fetchEvents(filters);
     } catch {
       toast.error('Error al cambiar el estado del evento');
       throw new Error('Failed to update status');
