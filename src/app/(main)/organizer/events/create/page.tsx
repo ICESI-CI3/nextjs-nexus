@@ -17,11 +17,18 @@ export default function OrganizerCreateEventPage() {
   const handleSubmit = async (data: CreateEventDTO) => {
     try {
       const newEvent = await createEvent(data);
-      toast.success('Evento creado con éxito en estado BORRADOR');
-      router.push(`/organizer/events/${newEvent.id}/tickets`);
-    } catch {
-      toast.error('Error al crear el evento');
-      throw new Error('Failed to create event');
+      console.log('New event created:', newEvent);
+
+      if (newEvent && newEvent.id) {
+        toast.success('Evento creado con éxito en estado BORRADOR');
+        router.push(`/organizer/events/${newEvent.id}/tickets`);
+      } else {
+        console.error('Create event returned an invalid event object:', newEvent);
+        toast.error('Error al crear el evento: no se recibió un ID de evento válido.');
+      }
+    } catch (error) {
+      console.error('Error in handleSubmit:', error);
+      toast.error('Error al crear el evento.');
     }
   };
 

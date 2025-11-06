@@ -23,12 +23,15 @@ export default function OrganizerManageTicketsPage() {
 
   React.useEffect(() => {
     if (isAuthenticated && eventId) {
-      fetchEventWithTicketTypes(eventId).catch(() => {
-        toast.error('Error al cargar el evento y los tickets');
-        router.push('/organizer/events');
-      });
+      // If the event in the store is not the one we need, fetch it.
+      if (currentEvent?.id !== eventId) {
+        fetchEventWithTicketTypes(eventId).catch(() => {
+          toast.error('Error al cargar el evento y los tickets');
+          router.push('/organizer/events');
+        });
+      }
     }
-  }, [isAuthenticated, eventId, fetchEventWithTicketTypes, router]);
+  }, [isAuthenticated, eventId, fetchEventWithTicketTypes, router, currentEvent]);
 
   const handleGoBack = () => {
     router.push('/organizer/events');

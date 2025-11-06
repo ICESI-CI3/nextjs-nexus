@@ -156,6 +156,7 @@ export const useEventStore = create<EventStore>((set) => ({
 
       set((state) => ({
         events: [event, ...state.events],
+        currentEvent: event, // Set the new event as the current one
         isLoading: false,
       }));
 

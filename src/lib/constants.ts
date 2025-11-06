@@ -51,6 +51,7 @@ export const ROUTES = {
   ADMIN_COMMENTS: '/admin/comments',
 
   ORGANIZER_EVENTS: '/organizer/events',
+  ORGANIZER_EVENT_TICKETS: (id: string) => `/organizer/events/${id}/tickets`,
   ORGANIZER_COMMENTS: '/organizer/comments',
 
   // Add more routes based on your application needs

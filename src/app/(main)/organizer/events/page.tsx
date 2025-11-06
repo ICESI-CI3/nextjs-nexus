@@ -66,7 +66,7 @@ export default function OrganizerEventsPage() {
     if (isAuthenticated) {
       const params: Record<string, unknown> = {
         page: 1,
-        limit: 10,
+        limit: 100,
       };
 
       if (filters.search) params.search = filters.search;
@@ -86,7 +86,7 @@ export default function OrganizerEventsPage() {
     (page: number) => {
       const params: Record<string, unknown> = {
         page,
-        limit: 10,
+        limit: 100,
       };
 
       if (filters.search) params.search = filters.search;

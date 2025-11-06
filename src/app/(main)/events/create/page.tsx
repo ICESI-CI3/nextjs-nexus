@@ -14,16 +14,24 @@ export default function CreateEventPage() {
   const handleSubmit = async (data: CreateEventDTO) => {
     try {
       const newEvent = await createEvent(data);
-      showToast.success('Evento creado exitosamente');
-      router.push(`${ROUTES.ADMIN_EVENTS}/${newEvent.id}/edit`);
-    } catch {
-      showToast.error('Error al crear el evento');
+      console.log('New event created:', newEvent);
+
+      if (newEvent && newEvent.id) {
+        showToast.success('Evento creado exitosamente');
+        router.push(ROUTES.ORGANIZER_EVENT_TICKETS(newEvent.id));
+      } else {
+        console.error('Create event returned an invalid event object:', newEvent);
+        showToast.error('Error al crear el evento: no se recibió un ID de evento válido.');
+      }
+    } catch (error) {
+      console.error('Error in handleSubmit:', error);
+      showToast.error('Error al crear el evento.');
       // The form will display a general error message
     }
   };
 
   const handleCancel = () => {
-    router.push(ROUTES.ADMIN_EVENTS);
+    router.push(ROUTES.ORGANIZER_EVENTS);
   };
 
   return (
