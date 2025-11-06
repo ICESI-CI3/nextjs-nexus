@@ -8,14 +8,17 @@ import { useCartStore } from '@/src/stores/useCartStore';
 import Button from '@/src/components/ui/Button';
 import { showToast } from '@/src/lib/toast';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface CartSummaryProps {
   cart: Cart;
 }
 
 export default function CartSummary({ cart }: CartSummaryProps) {
-  const { checkoutMercadoPago } = useCartStore();
+  const router = useRouter();
+  const { checkout, checkoutMercadoPago } = useCartStore();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDirectCheckout, setIsDirectCheckout] = useState(false);
 
   const totalAmount = Number(cart.totalAmount);
 
@@ -31,6 +34,19 @@ export default function CartSummary({ cart }: CartSummaryProps) {
     } catch {
       showToast.error('Error al crear preferencia de pago');
       setIsProcessing(false);
+    }
+  };
+
+  const handleDirectCheckout = async () => {
+    setIsDirectCheckout(true);
+    try {
+      const purchase = await checkout(cart.id);
+      showToast.success('Compra realizada exitosamente');
+      // Redirect to purchase details or purchases list
+      router.push(`/purchases/${purchase.id}`);
+    } catch {
+      showToast.error('Error al procesar la compra');
+      setIsDirectCheckout(false);
     }
   };
 
@@ -62,11 +78,20 @@ export default function CartSummary({ cart }: CartSummaryProps) {
       <div className="space-y-3">
         <Button
           onClick={handleMercadoPagoCheckout}
-          disabled={isProcessing || cart.items.length === 0}
+          disabled={isProcessing || isDirectCheckout || cart.items.length === 0}
           variant="primary"
           fullWidth
         >
           {isProcessing ? 'Procesando...' : 'Proceder al pago'}
+        </Button>
+
+        <Button
+          onClick={handleDirectCheckout}
+          disabled={isProcessing || isDirectCheckout || cart.items.length === 0}
+          variant="secondary"
+          fullWidth
+        >
+          {isDirectCheckout ? 'Procesando...' : 'Pago directo (sin pasarela)'}
         </Button>
       </div>
 
