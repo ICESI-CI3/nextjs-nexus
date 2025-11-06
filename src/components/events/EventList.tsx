@@ -20,6 +20,7 @@ interface EventListProps {
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   onManageTickets?: (id: string) => void;
+  onReject?: (id: string) => void;
   onChangeStatus?: (id: string, status: EventStatus) => Promise<void>;
   emptyMessage?: string;
   onRowClick?: (event: Event) => void;
@@ -36,6 +37,7 @@ export default function EventList({
   onEdit,
   onDelete,
   onManageTickets,
+  onReject,
   onChangeStatus,
   emptyMessage = 'No hay eventos disponibles',
   onRowClick,
@@ -47,7 +49,7 @@ export default function EventList({
     setIsSubmitting(`${id}-${status}`);
     try {
       await onChangeStatus(id, status);
-      toast.success(`Estado del evento actualizado a ${status}`);
+      toast.success(`Estado del evento actualizado`);
     } catch {
       // Error toast is likely handled by the store
     } finally {
@@ -85,26 +87,20 @@ export default function EventList({
       },
       createActionsColumn<Event>((event) => (
         <div className="flex items-center justify-end gap-2">
-          {/* Status Change Actions */}
-          {event.status === EventStatus.DRAFT && (
-            <Button
-              size="sm"
-              onClick={() => handleStatusChange(event.id, EventStatus.ACTIVE)}
-              disabled={isSubmitting === `${event.id}-${EventStatus.ACTIVE}`}
-            >
-              {isSubmitting === `${event.id}-${EventStatus.ACTIVE}` ? 'Activando...' : 'Activar'}
-            </Button>
-          )}
-          {event.status === EventStatus.ACTIVE && (
-            <Button
-              size="sm"
-              onClick={() => handleStatusChange(event.id, EventStatus.DRAFT)}
-              disabled={isSubmitting === `${event.id}-${EventStatus.DRAFT}`}
-            >
-              {isSubmitting === `${event.id}-${EventStatus.DRAFT}`
-                ? 'Desactivando...'
-                : 'Desactivar'}
-            </Button>
+          {event.status === EventStatus.PENDING_APPROVAL && (
+            <>
+              <Button
+                size="sm"
+                variant="success"
+                onClick={() => handleStatusChange(event.id, EventStatus.ACTIVE)}
+                disabled={isSubmitting === `${event.id}-${EventStatus.ACTIVE}`}
+              >
+                {isSubmitting === `${event.id}-${EventStatus.ACTIVE}` ? 'Aprobando...' : 'Aprobar'}
+              </Button>
+              <Button size="sm" variant="danger" onClick={() => onReject?.(event.id)}>
+                Rechazar
+              </Button>
+            </>
           )}
 
           {/* Other Actions */}

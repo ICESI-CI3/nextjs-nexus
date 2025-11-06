@@ -6,9 +6,69 @@ import { toast } from 'react-hot-toast';
 import EventList from '@/src/components/events/EventList';
 import ConfirmDialog from '@/src/components/ui/ConfirmDialog';
 import { useEventStore } from '@/src/stores/useEventStore';
+import { useCategoryStore } from '@/src/stores/useCategoryStore';
 import useRequireAuth from '@/src/hooks/useRequireAuth';
 import { ROUTES } from '@/src/lib/constants';
 import type { Event, EventStatus } from '@/src/lib/types';
+
+function RejectionModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  isLoading,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (comment: string) => void;
+  isLoading: boolean;
+}) {
+  const [comment, setComment] = React.useState('');
+
+  const handleConfirm = () => {
+    if (!comment.trim()) {
+      toast.error('El comentario es obligatorio para rechazar el evento.');
+      return;
+    }
+    onConfirm(comment);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+        <h2 className="mb-4 text-xl font-bold text-slate-900">Rechazar Evento</h2>
+        <p className="mb-4 text-slate-600">
+          Por favor, proporciona un motivo para rechazar este evento. Este comentario será visible
+          para el organizador.
+        </p>
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          className="w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          rows={4}
+          placeholder="Ej: Faltan detalles en la descripción del evento..."
+        ></textarea>
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="rounded-md bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-300"
+            disabled={isLoading}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleConfirm}
+            className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Rechazando...' : 'Confirmar Rechazo'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminEventsPage() {
   const router = useRouter();
@@ -27,6 +87,10 @@ export default function AdminEventsPage() {
   const [deleteEventId, setDeleteEventId] = React.useState<string | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
 
+  const [rejectionEventId, setRejectionEventId] = React.useState<string | null>(null);
+  const [isRejectionModalOpen, setRejectionModalOpen] = React.useState(false);
+  const [isRejecting, setIsRejecting] = React.useState(false);
+
   React.useEffect(() => {
     if (isAuthenticated) {
       fetchEvents({ page: 1, limit: 10 }).catch(() => {
@@ -35,11 +99,14 @@ export default function AdminEventsPage() {
     }
   }, [isAuthenticated, fetchEvents]);
 
-  const handlePageChange = (page: number) => {
-    fetchEvents({ page, limit: 10 }).catch(() => {
-      toast.error('Error al cargar eventos');
-    });
-  };
+  const handlePageChange = React.useCallback(
+    (page: number) => {
+      fetchEvents({ page, limit: 10 }).catch(() => {
+        toast.error('Error al cargar eventos');
+      });
+    },
+    [fetchEvents]
+  );
 
   const handleEdit = (id: string) => {
     router.push(ROUTES.ADMIN_EVENT_EDIT(id));
@@ -71,9 +138,31 @@ export default function AdminEventsPage() {
   const handleChangeStatus = async (id: string, status: EventStatus) => {
     try {
       await updateEventStatus(id, status);
+      toast.success('Estado del evento actualizado');
     } catch {
       toast.error('Error al cambiar el estado del evento');
       throw new Error('Failed to update status');
+    }
+  };
+
+  const handleReject = (id: string) => {
+    setRejectionEventId(id);
+    setRejectionModalOpen(true);
+  };
+
+  const confirmRejection = async (comment: string) => {
+    if (!rejectionEventId) return;
+
+    try {
+      setIsRejecting(true);
+      await updateEventStatus(rejectionEventId, 'REJECTED' as EventStatus, comment);
+      toast.success('Evento rechazado con éxito');
+      setRejectionModalOpen(false);
+      setRejectionEventId(null);
+    } catch {
+      toast.error('Error al rechazar el evento');
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -81,10 +170,10 @@ export default function AdminEventsPage() {
     router.push(ROUTES.ADMIN_EVENT_DETAIL(event.id));
   };
 
-  if (authLoading || isLoading) {
+  if (authLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-sm text-slate-500">Cargando…</p>
+        <p className="text-sm text-slate-500">Cargando...</p>
       </div>
     );
   }
@@ -99,20 +188,27 @@ export default function AdminEventsPage() {
         <h1 className="text-2xl font-bold text-slate-800">Gestión de Eventos</h1>
       </div>
 
-      <EventList
-        events={events}
-        viewMode="table"
-        showActions={true}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onManageTickets={handleManageTickets}
-        onChangeStatus={handleChangeStatus}
-        onRowClick={handleRowClick}
-        emptyMessage="No tienes eventos creados. Comienza creando uno nuevo."
-      />
+      {isLoading ? (
+        <div className="flex min-h-[40vh] items-center justify-center">
+          <p className="text-sm text-slate-500">Cargando eventos...</p>
+        </div>
+      ) : (
+        <EventList
+          events={events}
+          viewMode="table"
+          showActions={true}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onManageTickets={handleManageTickets}
+          onChangeStatus={handleChangeStatus}
+          onReject={handleReject}
+          onRowClick={handleRowClick}
+          emptyMessage="No tienes eventos creados. Comienza creando uno nuevo."
+        />
+      )}
 
       <ConfirmDialog
         isOpen={!!deleteEventId}
@@ -123,6 +219,13 @@ export default function AdminEventsPage() {
         confirmText="Eliminar"
         variant="danger"
         isLoading={isDeleting}
+      />
+
+      <RejectionModal
+        isOpen={isRejectionModalOpen}
+        onClose={() => setRejectionModalOpen(false)}
+        onConfirm={confirmRejection}
+        isLoading={isRejecting}
       />
     </div>
   );

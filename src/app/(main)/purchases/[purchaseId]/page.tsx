@@ -11,6 +11,7 @@ import { usePurchaseStore } from '@/src/stores/usePurchaseStore';
 import Button from '@/src/components/ui/Button';
 import { showToast } from '@/src/lib/toast';
 import QRCode from 'qrcode';
+import { TicketStatus } from '@/src/lib/types';
 
 export default function PurchaseDetailPage() {
   const params = useParams();
@@ -217,9 +218,9 @@ export default function PurchaseDetailPage() {
                   <div>
                     <p className="text-xs text-gray-500">Estado</p>
                     <p
-                      className={`text-sm font-medium ${ticket.isValidated ? 'text-red-600' : 'text-green-600'}`}
+                      className={`text-sm font-medium ${ticket.status === TicketStatus.REDEEMED ? 'text-red-600' : 'text-green-600'}`}
                     >
-                      {ticket.isValidated ? 'Validado (usado)' : 'Valido'}
+                      {ticket.status === TicketStatus.REDEEMED ? 'Validado (usado)' : 'Valido'}
                     </p>
                   </div>
                 </div>

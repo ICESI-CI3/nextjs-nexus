@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEventStore } from '@/src/stores/useEventStore';
 import { showToast } from '@/src/lib/toast';
+import EventStatusBadge from '@/src/components/events/EventStatusBadge';
 
 export default function AdminEventDetailPage() {
   const params = useParams();
@@ -88,24 +89,6 @@ export default function AdminEventDetailPage() {
     minute: '2-digit',
   });
 
-  const statusColors: Record<string, string> = {
-    DRAFT: 'bg-slate-100 text-slate-800',
-    PRE_SALE: 'bg-purple-100 text-purple-800',
-    ACTIVE: 'bg-green-200 text-green-800',
-    SUSPENDED: 'bg-yellow-200 text-yellow-800',
-    CANCELLED: 'bg-red-200 text-red-800',
-    FINISHED: 'bg-slate-200 text-slate-800',
-  };
-
-  const statusLabels: Record<string, string> = {
-    DRAFT: 'Borrador',
-    PRE_SALE: 'Pre-venta',
-    ACTIVE: 'Activo',
-    SUSPENDED: 'Suspendido',
-    CANCELLED: 'Cancelado',
-    FINISHED: 'Finalizado',
-  };
-
   return (
     <div className="min-h-screen bg-white">
       <div className="container mx-auto px-4 py-8">
@@ -129,12 +112,8 @@ export default function AdminEventDetailPage() {
             <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-start justify-between">
                 <div>
-                  <span
-                    className={`mb-3 inline-block rounded-full px-3 py-1 text-xs font-semibold ${statusColors[event.status] || 'bg-slate-100 text-slate-800'}`}
-                  >
-                    {statusLabels[event.status] || event.status}
-                  </span>
-                  <h1 className="mb-2 text-3xl font-bold text-slate-900">{event.title}</h1>
+                  <EventStatusBadge status={event.status} />
+                  <h1 className="mt-3 mb-2 text-3xl font-bold text-slate-900">{event.title}</h1>
                   <span className="inline-flex items-center rounded-md bg-purple-100 px-3 py-1 text-sm font-medium text-purple-800">
                     {event.category.name}
                   </span>
@@ -204,6 +183,19 @@ export default function AdminEventDetailPage() {
                 </div>
               </div>
             </div>
+
+            {event.statusLogs && event.statusLogs.length > 0 && (
+              <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="mb-4 text-xl font-bold text-slate-900">Historial de Estado</h2>
+                <ul className="space-y-2">
+                  {event.statusLogs.map((log, index) => (
+                    <li key={index} className="text-sm text-slate-600">
+                      {log}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-1">

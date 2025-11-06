@@ -5,7 +5,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import Button from '@/src/components/ui/Button';
 import FormError from '@/src/components/ui/FormError';
 import { validateTicket } from '@/src/services/ticketService';
-import type { Ticket } from '@/src/lib/types';
+import { TicketStatus, type Ticket } from '@/src/lib/types';
 
 type ValidationMode = 'scanner' | 'manual';
 
@@ -365,7 +365,9 @@ export default function TicketValidationForm() {
                   </p>
                   <p>
                     <span className="font-medium">Estado:</span>{' '}
-                    {result.ticket.isValidated ? 'Ya validado' : 'Validado ahora'}
+                    {result.ticket.status === TicketStatus.REDEEMED
+                      ? 'Ya validado'
+                      : 'Validado ahora'}
                   </p>
                 </div>
               )}

@@ -58,8 +58,15 @@ async function updateEvent(id: string, data: UpdateEventDTO): Promise<Event> {
 /**
  * Update event status (ADMIN only)
  */
-async function updateEventStatus(id: string, status: EventStatus): Promise<Event> {
-  return patch<Event, { status: EventStatus }>(`/events/${id}/status`, { status });
+async function updateEventStatus(
+  id: string,
+  status: EventStatus,
+  comment?: string
+): Promise<Event> {
+  return patch<Event, { status: EventStatus; comment?: string }>(`/events/${id}/status`, {
+    status,
+    comment,
+  });
 }
 
 /**

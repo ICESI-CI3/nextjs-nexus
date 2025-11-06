@@ -14,6 +14,18 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; className: string }> =
     label: 'Activo',
     className: 'bg-green-200 text-green-800',
   },
+  [EventStatus.PENDING_APPROVAL]: {
+    label: 'Pendiente Aprobación',
+    className: 'bg-blue-200 text-blue-800',
+  },
+  [EventStatus.REJECTED]: {
+    label: 'Rechazado',
+    className: 'bg-red-200 text-red-800',
+  },
+  [EventStatus.IN_PROGRESS]: {
+    label: 'En Curso',
+    className: 'bg-cyan-200 text-cyan-800',
+  },
   [EventStatus.CANCELLED]: {
     label: 'Cancelado',
     className: 'bg-red-200 text-red-800',
@@ -21,10 +33,6 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; className: string }> =
   [EventStatus.DRAFT]: {
     label: 'Borrador',
     className: 'bg-yellow-200 text-yellow-800',
-  },
-  [EventStatus.PRE_SALE]: {
-    label: 'Pre-venta',
-    className: 'bg-purple-100 text-purple-800',
   },
   [EventStatus.SUSPENDED]: {
     label: 'Suspendido',

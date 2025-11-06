@@ -33,7 +33,7 @@ interface EventActions {
   fetchEventWithTicketTypes: (id: string) => Promise<void>;
   createEvent: (data: CreateEventDTO) => Promise<Event>;
   updateEvent: (id: string, data: UpdateEventDTO) => Promise<Event>;
-  updateEventStatus: (id: string, status: EventStatus) => Promise<Event>;
+  updateEventStatus: (id: string, status: EventStatus, comment?: string) => Promise<Event>;
   deleteEvent: (id: string) => Promise<void>;
   setCurrentEvent: (event: Event | null) => void;
   clearError: () => void;
@@ -67,7 +67,9 @@ export const useEventStore = create<EventStore>((set) => ({
     try {
       set({ isLoading: true, error: null });
 
-      const response = await eventService.getEvents(params);
+      const queryParams: QueryParams = { ...params };
+
+      const response = await eventService.getEvents(queryParams);
 
       // Handle both paginated and non-paginated responses
       if (Array.isArray(response)) {
@@ -191,11 +193,11 @@ export const useEventStore = create<EventStore>((set) => ({
     }
   },
 
-  updateEventStatus: async (id, status) => {
+  updateEventStatus: async (id, status, comment) => {
     try {
       set({ isLoading: true, error: null });
 
-      const event = await eventService.updateEventStatus(id, status);
+      const event = await eventService.updateEventStatus(id, status, comment);
 
       set((state) => ({
         events: state.events.map((e) => (e.id === id ? event : e)),
