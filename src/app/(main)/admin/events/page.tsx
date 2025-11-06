@@ -102,7 +102,7 @@ export default function AdminEventsPage() {
 
   const [filters, setFilters] = React.useState<EventFiltersType>({
     search: '',
-    status: '',
+    status: 'all',
     categoryId: '',
     venueId: '',
     dateFrom: '',

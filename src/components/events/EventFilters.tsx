@@ -7,7 +7,7 @@ import { cn } from '@/src/lib/utils';
 
 export interface EventFilters {
   search?: string;
-  status?: EventStatus | '';
+  status?: EventStatus | 'all';
   categoryId?: string;
   venueId?: string;
   dateFrom?: string;
@@ -23,8 +23,8 @@ interface EventFiltersProps {
   isLoading?: boolean;
 }
 
-const STATUS_OPTIONS: { value: EventStatus | ''; label: string }[] = [
-  { value: '', label: 'Todos los estados' },
+const STATUS_OPTIONS: { value: EventStatus | 'all'; label: string }[] = [
+  { value: 'all', label: 'Todos los estados' },
   { value: EventStatus.DRAFT, label: 'Borrador' },
   { value: EventStatus.PENDING_APPROVAL, label: 'Pendiente Aprobación' },
   { value: EventStatus.REJECTED, label: 'Rechazado' },
@@ -50,7 +50,7 @@ export default function EventFilters({
   };
 
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onFiltersChange({ ...filters, status: e.target.value as EventStatus | '' });
+    onFiltersChange({ ...filters, status: e.target.value as EventStatus | 'all' });
   };
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -72,7 +72,7 @@ export default function EventFilters({
   const handleClearFilters = () => {
     onFiltersChange({
       search: '',
-      status: '',
+      status: 'all',
       categoryId: '',
       venueId: '',
       dateFrom: '',
@@ -83,7 +83,7 @@ export default function EventFilters({
 
   const hasActiveFilters =
     filters.search ||
-    filters.status ||
+    (filters.status && filters.status !== 'all') ||
     filters.categoryId ||
     filters.venueId ||
     filters.dateFrom ||
@@ -91,7 +91,7 @@ export default function EventFilters({
 
   const activeFiltersCount = [
     filters.search,
-    filters.status,
+    filters.status && filters.status !== 'all' ? filters.status : null,
     filters.categoryId,
     filters.venueId,
     filters.dateFrom,
@@ -180,7 +180,7 @@ export default function EventFilters({
                 </label>
                 <select
                   id="status"
-                  value={filters.status || ''}
+                  value={filters.status || 'all'}
                   onChange={handleStatusChange}
                   disabled={isLoading}
                   className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-600 focus:ring-2 focus:ring-slate-600 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100"
@@ -282,13 +282,13 @@ export default function EventFilters({
                   </button>
                 </span>
               )}
-              {filters.status && (
+              {filters.status && filters.status !== 'all' && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-800">
                   Estado:{' '}
                   {STATUS_OPTIONS.find((s) => s.value === filters.status)?.label || filters.status}
                   <button
                     type="button"
-                    onClick={() => onFiltersChange({ ...filters, status: '' })}
+                    onClick={() => onFiltersChange({ ...filters, status: 'all' })}
                     className="ml-1 hover:text-purple-900"
                   >
                     ×

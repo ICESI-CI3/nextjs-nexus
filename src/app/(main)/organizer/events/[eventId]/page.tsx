@@ -23,6 +23,7 @@ export default function OrganizerEventDetailPage() {
     fetchEventWithTicketTypes,
     updateEventStatus,
     clearError,
+    fetchEventById,
   } = useEventStore();
 
   const [statusAction, setStatusAction] = useState<{
@@ -64,8 +65,7 @@ export default function OrganizerEventDetailPage() {
           : 'Evento cancelado exitosamente'
       );
       setStatusAction({ action: null, newStatus: null });
-      // Refrescar datos
-      await fetchEventWithTicketTypes(eventId);
+      await fetchEventById(eventId); // Refresh event data to get updated statusLogs
     } catch {
       showToast.error('Error al cambiar el estado del evento');
     } finally {

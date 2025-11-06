@@ -1,29 +1,58 @@
 'use client';
 
 import * as React from 'react';
-import { useEventStore } from '@/src/stores/useEventStore';
 import { useRequireRole } from '@/src/hooks/useRequireRole';
-import { EventStatus } from '@/src/lib/types';
+import { EventStatus, type Event } from '@/src/lib/types';
 import { showToast } from '@/src/lib/toast';
+import { getAllEvents } from '@/src/services/eventService';
 
 export default function OrganizerCommentsPage() {
   const { isAuthorized, isLoading: authLoading } = useRequireRole('ORGANIZER');
-  const { events, isLoading, fetchEvents } = useEventStore();
+  const [relevantEvents, setRelevantEvents] = React.useState<Event[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
     if (isAuthorized) {
-      fetchEvents({ page: 1, limit: 1000 }).catch(() => {
-        showToast.error('Error al cargar los eventos.');
-      });
-    }
-  }, [isAuthorized, fetchEvents]);
+      const fetchRelevantEvents = async () => {
+        setIsLoading(true);
+        try {
+          const statusesToFetch = [
+            EventStatus.REJECTED,
+            EventStatus.SUSPENDED,
+            EventStatus.CANCELLED,
+          ];
 
-  const relevantEvents = events.filter(
-    (event) =>
-      event.status === EventStatus.REJECTED ||
-      event.status === EventStatus.SUSPENDED ||
-      event.status === EventStatus.CANCELLED
-  );
+          const promises = statusesToFetch.map((status) =>
+            getAllEvents({ page: 1, limit: 1000, status })
+          );
+
+          const results = await Promise.all(promises);
+
+          const allEvents = results.flatMap((result) => {
+            if (Array.isArray(result)) {
+              return result; // It's already an array of events
+            }
+            if (result && result.data) {
+              return result.data; // It's a PaginatedResponse
+            }
+            return []; // It's something else, return empty array
+          });
+
+          // Remove duplicates
+          const uniqueEvents = Array.from(new Map(allEvents.map((e) => [e.id, e])).values());
+
+          setRelevantEvents(uniqueEvents);
+        } catch (error) {
+          showToast.error('Error al cargar los comentarios de eventos.');
+          console.error(error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchRelevantEvents();
+    }
+  }, [isAuthorized]);
 
   if (authLoading || isLoading) {
     return (

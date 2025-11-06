@@ -48,7 +48,7 @@ export default function OrganizerEventsPage() {
 
   const [filters, setFilters] = React.useState<EventFiltersType>({
     search: '',
-    status: '',
+    status: 'all',
     categoryId: '',
     venueId: '',
     dateFrom: '',
@@ -70,7 +70,7 @@ export default function OrganizerEventsPage() {
       };
 
       if (filters.search) params.search = filters.search;
-      if (filters.status) params.status = filters.status;
+      if (filters.status && filters.status !== 'all') params.status = filters.status;
       if (filters.categoryId) params.categoryId = filters.categoryId;
       if (filters.venueId) params.venueId = filters.venueId;
       if (filters.dateFrom) params.dateFrom = filters.dateFrom;
