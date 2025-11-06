@@ -198,7 +198,7 @@ function Setup2FAPageContent() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
+    <div className="mx-auto max-w-5xl px-6 py-10">
       <div className="mb-6">
         {!alreadyEnabled ? (
           <>
@@ -219,36 +219,35 @@ function Setup2FAPageContent() {
       </div>
 
       <div className="space-y-6">
-        {!alreadyEnabled && setupData && (
-          <>
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-medium text-slate-900">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs text-white">
-                  1
-                </span>
-                Escanea el código QR
-              </h2>
-              <p className="mb-4 text-sm text-slate-600">
-                Abre tu aplicación autenticadora (Google Authenticator, Authy, etc.) y escanea este
-                código QR:
-              </p>
-              <div className="flex justify-center rounded-lg bg-slate-50 p-6">
-                {qrDataUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={qrDataUrl} alt="QR Code para 2FA" className="h-48 w-48" />
-                ) : (
-                  <div className="flex h-48 w-48 items-center justify-center rounded-md border border-slate-200 bg-white text-sm text-slate-500">
-                    {isGeneratingQR ? 'Generando QR…' : 'QR no disponible'}
-                  </div>
-                )}
-              </div>
-              {qrError && <FormError message={qrError} className="mt-4" />}
-            </div>
-          </>
-        )}
-
         {!alreadyEnabled && (
-          <>
+          <div className="space-y-6 md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
+            {setupData && (
+              <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="mb-4 flex items-center gap-2 text-lg font-medium text-slate-900">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs text-white">
+                    1
+                  </span>
+                  Escanea el código QR
+                </h2>
+                <p className="mb-4 text-sm text-slate-600">
+                  Abre tu aplicación autenticadora (Google Authenticator, Authy, etc.) y escanea
+                  este código QR:
+                </p>
+                <div className="flex justify-center rounded-lg bg-slate-50 p-6">
+                  {qrDataUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={qrDataUrl} alt="QR Code para 2FA" className="h-48 w-48" />
+                  ) : (
+                    <div className="flex h-48 w-48 items-center justify-center rounded-md border border-slate-200 bg-white text-sm text-slate-500">
+                      {isGeneratingQR ? 'Generando QR…' : 'QR no disponible'}
+                    </div>
+                  )}
+                </div>
+                {qrError && <FormError message={qrError} className="mt-4" />}
+              </div>
+            )}
+
+            {/* Right column: verification form */}
             <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-medium text-slate-900">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs text-white">
@@ -312,7 +311,7 @@ function Setup2FAPageContent() {
                 </div>
               </form>
             </div>
-          </>
+          </div>
         )}
         {!alreadyEnabled && setupData && (
           <>

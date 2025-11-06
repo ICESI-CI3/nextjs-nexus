@@ -90,7 +90,9 @@ export default function RoleForm({ roleToEdit, onSuccess }: Props) {
   }, [roleToEdit, reset]);
 
   // Dual list
-  const assignedIds = watch('permissionIds') ?? [];
+  // Memoize watched permissionIds to satisfy exhaustive-deps and avoid re-computation noise
+  const watchedPermissionIds = watch('permissionIds');
+  const assignedIds = React.useMemo(() => watchedPermissionIds ?? [], [watchedPermissionIds]);
   const assignedSet = React.useMemo(() => new Set(assignedIds), [assignedIds]);
 
   const availablePerms = React.useMemo(

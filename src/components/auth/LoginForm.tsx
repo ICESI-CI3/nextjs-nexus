@@ -159,19 +159,10 @@ export default function LoginForm() {
 
       {/* Password Field */}
       <div className="space-y-1">
-        <div className="flex items-center justify-between">
-          <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-            Contraseña
-          </label>
-          <button
-            type="button"
-            onClick={(e) => e.preventDefault()}
-            className="cursor-not-allowed text-xs text-slate-600 opacity-60 transition-colors hover:text-slate-800"
-            disabled
-          >
-            ¿Olvidaste tu contraseña?
-          </button>
-        </div>
+        <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+          Contraseña
+        </label>
+
         <input
           id="password"
           name="password"

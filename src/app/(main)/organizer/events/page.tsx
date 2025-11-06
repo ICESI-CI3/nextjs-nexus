@@ -13,7 +13,6 @@ import { useEventStore } from '@/src/stores/useEventStore';
 import { useRequireRole } from '@/src/hooks/useRequireRole';
 import { useCategoryStore } from '@/src/stores/useCategoryStore';
 import { useVenueStore } from '@/src/stores/useVenueStore';
-import useRequireAuth from '@/src/hooks/useRequireAuth';
 import { Event, EventStatus } from '@/src/lib/types';
 import SuspensionCancellationModal from '@/src/components/events/SuspensionCancellationModal';
 

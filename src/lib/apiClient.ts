@@ -1,7 +1,12 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { API_CONFIG, AUTH_CONFIG, ERROR_MESSAGES } from './constants';
 import { getLocalStorage, setLocalStorage, removeLocalStorage } from './utils';
+import { isTokenExpiringSoon } from './jwtUtils';
 import type { ApiError } from './types';
+
+// Track if a refresh is already in progress to avoid multiple simultaneous refreshes
+let isRefreshing = false;
+let refreshPromise: Promise<string> | null = null;
 
 /**
  * Create axios instance with default configuration
@@ -15,14 +20,76 @@ const apiClient: AxiosInstance = axios.create({
 });
 
 /**
- * Request interceptor to add auth token
+ * Refresh the access token using the refresh token
+ * Returns the new access token
+ */
+async function refreshAccessToken(): Promise<string> {
+  const refreshToken = getLocalStorage<string | null>(AUTH_CONFIG.REFRESH_TOKEN_KEY, null);
+
+  if (!refreshToken) {
+    throw new Error('No refresh token available');
+  }
+
+  // Call refresh token endpoint (backend expects snake_case)
+  const response = await axios.post(`${API_CONFIG.BASE_URL}/auth/refresh`, {
+    refresh_token: refreshToken,
+  });
+
+  // Backend returns { access_token, refresh_token }
+  const { access_token, refresh_token: newRefreshToken } = response.data as {
+    access_token: string;
+    refresh_token: string;
+  };
+
+  // Save new tokens
+  setLocalStorage(AUTH_CONFIG.TOKEN_KEY, access_token);
+  setLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY, newRefreshToken);
+
+  return access_token;
+}
+
+/**
+ * Request interceptor to add auth token and proactively refresh if needed
  */
 apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
     const token = getLocalStorage<string | null>(AUTH_CONFIG.TOKEN_KEY, null);
 
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (token) {
+      // Check if token is expiring soon (within 5 minutes)
+      if (isTokenExpiringSoon(token, 5)) {
+        // Proactively refresh the token before it expires
+        if (!isRefreshing) {
+          isRefreshing = true;
+          refreshPromise = refreshAccessToken()
+            .then((newToken) => {
+              isRefreshing = false;
+              refreshPromise = null;
+              return newToken;
+            })
+            .catch((error) => {
+              isRefreshing = false;
+              refreshPromise = null;
+              // If refresh fails, clear tokens and redirect to login
+              removeLocalStorage(AUTH_CONFIG.TOKEN_KEY);
+              removeLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY);
+              removeLocalStorage(AUTH_CONFIG.USER_KEY);
+              if (typeof window !== 'undefined') {
+                window.location.href = '/login';
+              }
+              throw error;
+            });
+        }
+
+        // Wait for the refresh to complete
+        const newToken = await refreshPromise;
+        if (config.headers) {
+          config.headers.Authorization = `Bearer ${newToken}`;
+        }
+      } else if (config.headers) {
+        // Token is still valid, use it
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
 
     return config;
