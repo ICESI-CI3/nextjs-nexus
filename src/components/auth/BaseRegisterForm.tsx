@@ -3,14 +3,12 @@
 import * as React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import Button from '@/src/components/ui/Button';
 import FormError from '@/src/components/ui/FormError';
 import FormSuccess from '@/src/components/ui/FormSuccess';
 import { authSchemas, cn, formatZodErrors } from '@/src/lib/utils';
 import roleService, { type Role } from '@/src/services/roleService';
-import { showToast } from '@/src/lib/toast';
 
 type RegisterValues = z.infer<typeof authSchemas.register> & {
   selectedRoleId: string;
@@ -52,8 +50,6 @@ export default function BaseRegisterForm({
   const [roles, setRoles] = React.useState<Role[]>([]);
   const [isLoadingRoles, setIsLoadingRoles] = React.useState(true);
 
-  const router = useRouter();
-
   // Cargar roles según el modo
   React.useEffect(() => {
     const loadRoles = async () => {
@@ -72,8 +68,19 @@ export default function BaseRegisterForm({
           setValues((prev) => ({ ...prev, selectedRoleId: buyerRole.id }));
         }
       } catch (error) {
-        console.error('Error loading roles:', error);
-        showToast.error('Error al cargar roles disponibles');
+        const apiError = error as { response?: { status?: number }; message?: string };
+
+        // Si es 403 (sin permisos), mostrar error inline sin toast
+        if (apiError.response?.status === 403) {
+          setGeneralError('No tienes permisos para crear usuarios en esta sección');
+        } else {
+          setGeneralError('Error al cargar roles disponibles');
+        }
+
+        // Log en desarrollo sin activar overlay
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug('Error loading roles:', error);
+        }
       } finally {
         setIsLoadingRoles(false);
       }

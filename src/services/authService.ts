@@ -193,7 +193,7 @@ async function getProfile(): Promise<User> {
 
   const response = await apiClient.get<ProfileResponse>('/auth/me');
 
-  // Map ProfileResponseDto to User type (extract roleIds from nested roles)
+  // Map ProfileResponseDto to User type (keep roles for permission checks)
   return {
     id: response.data.id,
     firstName: response.data.firstName,
@@ -201,6 +201,7 @@ async function getProfile(): Promise<User> {
     email: response.data.email,
     twoFactorEnabled: response.data.twoFactorEnabled,
     roleIds: response.data.roles.map((r) => r.id),
+    roles: response.data.roles, // Keep full roles with permissions
     createdAt: new Date().toISOString(), // Not provided by /me, use current date
   };
 }

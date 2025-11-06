@@ -1,13 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import BaseRegisterForm from '../auth/BaseRegisterForm';
 import authService from '@/src/services/authService';
-import { ROUTES } from '@/src/lib/constants';
 
 export default function AdminCreateUserForm() {
-  const router = useRouter();
-
   const handleSubmit = async (values: {
     firstName: string;
     lastName: string;
@@ -20,7 +16,7 @@ export default function AdminCreateUserForm() {
 
   const handleSuccess = () => {
     // Opcionalmente redirigir a lista de usuarios
-    // router.push('/admin/users');
+    // Si se necesita redirigir, importar useRouter y router.push('/admin/users');
   };
 
   return (

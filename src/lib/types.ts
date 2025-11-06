@@ -37,7 +37,7 @@ export enum PaymentStatus {
 // ==================== CORE ENTITIES ====================
 
 /**
- * User type - matches backend ResponseUserDto
+ * User type - matches backend ProfileResponseDto from /auth/me
  */
 export interface User {
   id: string;
@@ -47,6 +47,14 @@ export interface User {
   twoFactorEnabled?: boolean;
   createdAt: Date | string;
   roleIds: string[];
+  roles?: Array<{
+    id: string;
+    name: string;
+    permissions: Array<{
+      id: string;
+      name: string;
+    }>;
+  }>;
 }
 
 /**
