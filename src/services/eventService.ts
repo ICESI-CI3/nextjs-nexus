@@ -18,14 +18,25 @@ import type {
 import { buildQueryString } from '@/src/lib/utils';
 
 /**
- * Get all events (paginated)
+ * Extended query params for events with filters
+ */
+export interface EventQueryParams extends QueryParams {
+  status?: EventStatus | string;
+  categoryId?: string;
+  venueId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+/**
+ * Get all events (paginated with filters)
  * Retrieves events based on user role:
  * - BUYER/authenticated users see only approved events
  * - ORGANIZER sees only their own events
  * - ADMIN sees all events
  * Results are ordered by event date (ascending)
  */
-async function getEvents(params?: QueryParams): Promise<PaginatedResponse<Event>> {
+async function getEvents(params?: EventQueryParams): Promise<PaginatedResponse<Event>> {
   const queryString = params ? buildQueryString(params) : '';
   return get<PaginatedResponse<Event>>(`/events?${queryString}`);
 }
@@ -89,7 +100,6 @@ async function getTicketTypes(eventId: string): Promise<TicketType[]> {
  * Create ticket type for an event (ADMIN/ORGANIZER only)
  */
 async function createTicketType(eventId: string, data: CreateTicketTypeDTO): Promise<TicketType> {
-  console.log('DEBUG: Data being sent to createTicketType:', { eventId, data });
   return post<TicketType, CreateTicketTypeDTO>(`/events/${eventId}/ticket-types`, data);
 }
 

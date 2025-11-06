@@ -4,16 +4,22 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import EventList from '@/src/components/events/EventList';
+import EventFilters, {
+  type EventFilters as EventFiltersType,
+} from '@/src/components/events/EventFilters';
 import ConfirmDialog from '@/src/components/ui/ConfirmDialog';
 import Button from '@/src/components/ui/Button';
 import { useEventStore } from '@/src/stores/useEventStore';
 import { useRequireRole } from '@/src/hooks/useRequireRole';
+import { useCategoryStore } from '@/src/stores/useCategoryStore';
+import { useVenueStore } from '@/src/stores/useVenueStore';
+import useRequireAuth from '@/src/hooks/useRequireAuth';
 import { Event, EventStatus } from '@/src/lib/types';
 import SuspensionCancellationModal from '@/src/components/events/SuspensionCancellationModal';
 
 export default function OrganizerEventsPage() {
   const router = useRouter();
-  const { isAuthorized, isLoading: authLoading } = useRequireRole('ORGANIZER');
+  const { isAuthorized, isLoading: authLoading, isAuthenticated } = useRequireRole('ORGANIZER');
 
   const {
     events,
@@ -24,6 +30,9 @@ export default function OrganizerEventsPage() {
     updateEventStatus,
     deleteEvent,
   } = useEventStore();
+
+  const { categories, fetchCategories } = useCategoryStore();
+  const { venues, fetchVenues } = useVenueStore();
 
   const [deleteEventId, setDeleteEventId] = React.useState<string | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -38,21 +47,61 @@ export default function OrganizerEventsPage() {
   >(null);
   const [isProcessingStatusChange, setIsProcessingStatusChange] = React.useState(false);
 
+  const [filters, setFilters] = React.useState<EventFiltersType>({
+    search: '',
+    status: '',
+    categoryId: '',
+    venueId: '',
+    dateFrom: '',
+    dateTo: '',
+  });
+
+  // Load categories and venues for filters
   React.useEffect(() => {
-    if (isAuthorized) {
-      fetchEvents({ page: 1, limit: 10 }).catch(() => {
+    fetchCategories().catch(() => {});
+    fetchVenues().catch(() => {});
+  }, [fetchCategories, fetchVenues]);
+
+  // Fetch events when filters change
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      const params: Record<string, unknown> = {
+        page: 1,
+        limit: 10,
+      };
+
+      if (filters.search) params.search = filters.search;
+      if (filters.status) params.status = filters.status;
+      if (filters.categoryId) params.categoryId = filters.categoryId;
+      if (filters.venueId) params.venueId = filters.venueId;
+      if (filters.dateFrom) params.dateFrom = filters.dateFrom;
+      if (filters.dateTo) params.dateTo = filters.dateTo;
+
+      fetchEvents(params).catch(() => {
         toast.error('Error al cargar eventos');
       });
     }
-  }, [isAuthorized, fetchEvents]);
+  }, [isAuthenticated, fetchEvents, filters]);
 
   const handlePageChange = React.useCallback(
     (page: number) => {
-      fetchEvents({ page, limit: 10 }).catch(() => {
+      const params: Record<string, unknown> = {
+        page,
+        limit: 10,
+      };
+
+      if (filters.search) params.search = filters.search;
+      if (filters.status) params.status = filters.status;
+      if (filters.categoryId) params.categoryId = filters.categoryId;
+      if (filters.venueId) params.venueId = filters.venueId;
+      if (filters.dateFrom) params.dateFrom = filters.dateFrom;
+      if (filters.dateTo) params.dateTo = filters.dateTo;
+
+      fetchEvents(params).catch(() => {
         toast.error('Error al cargar eventos');
       });
     },
-    [fetchEvents]
+    [fetchEvents, filters]
   );
 
   const handleCreate = () => {
@@ -152,6 +201,19 @@ export default function OrganizerEventsPage() {
         <Button onClick={handleCreate}>Crear Evento</Button>
       </div>
 
+      {/* Filters */}
+      <div className="mb-6">
+        <EventFilters
+          filters={filters}
+          onFiltersChange={setFilters}
+          categories={categories}
+          venues={venues}
+          showStatusFilter={true}
+          isLoading={isLoading}
+        />
+      </div>
+
+      {/* Event list */}
       {isLoading ? (
         <div className="flex min-h-[40vh] items-center justify-center">
           <p className="text-sm text-slate-500">Cargando eventos...</p>
@@ -169,7 +231,7 @@ export default function OrganizerEventsPage() {
           onManageTickets={handleManageTickets}
           onChangeStatus={handleChangeStatus}
           onRowClick={handleRowClick}
-          emptyMessage="No tienes eventos creados. Comienza creando uno nuevo."
+          emptyMessage="No se encontraron eventos con los filtros aplicados."
         />
       )}
 
