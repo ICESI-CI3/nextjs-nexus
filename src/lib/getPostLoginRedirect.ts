@@ -12,12 +12,12 @@ export function getPostLoginRedirect(activeRole: string | null): string {
     case 'ADMINISTRATOR':
       return '/admin';
     case 'ORGANIZER':
-      return '/events'; // Temporary until organizer routes are ready
+      return '/organizer/events';
     case 'BUYER':
-      return '/dashboard';
+      return '/events';
     case 'STAFF':
       return '/tickets/validate';
     default:
-      return '/dashboard'; // Fallback
+      return '/events'; // Fallback to events page
   }
 }

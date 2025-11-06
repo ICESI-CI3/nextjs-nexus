@@ -32,8 +32,8 @@ const ROLE_PRIORITY: Record<GenericRole, number> = {
  */
 const ROLE_REDIRECTS: Record<GenericRole, string> = {
   ADMINISTRATOR: '/admin',
-  ORGANIZER: '/events', // Temporary, will be updated when organizer routes are ready
-  BUYER: '/dashboard',
+  ORGANIZER: '/organizer/events',
+  BUYER: '/events',
   STAFF: '/tickets/validate',
 };
 
@@ -142,14 +142,14 @@ export function suggestRoleByRoute(pathname: string, userRoles: string[]): Gener
     return genericRoles.includes('ADMINISTRATOR') ? 'ADMINISTRATOR' : null;
   }
 
+  // Organizer routes
+  if (pathname.startsWith('/organizer')) {
+    return genericRoles.includes('ORGANIZER') ? 'ORGANIZER' : null;
+  }
+
   // Staff routes
   if (pathname.startsWith('/tickets/validate')) {
     return genericRoles.includes('STAFF') ? 'STAFF' : null;
-  }
-
-  // Organizer routes (when they're implemented)
-  if (pathname.startsWith('/events/create') || pathname.match(/^\/events\/[^/]+\/edit/)) {
-    return genericRoles.includes('ORGANIZER') ? 'ORGANIZER' : null;
   }
 
   // Buyer routes

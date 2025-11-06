@@ -31,7 +31,7 @@ const ROLE_CONFIG: Record<
   },
   ORGANIZER: {
     label: 'Organizador',
-    description: 'Gestiono eventos y tickets',
+    description: 'Creo y gestiono mis eventos',
     icon: (
       <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -45,7 +45,7 @@ const ROLE_CONFIG: Record<
   },
   BUYER: {
     label: 'Comprador',
-    description: 'Compro tickets para eventos',
+    description: 'Exploro y compro tickets',
     icon: (
       <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
