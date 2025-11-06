@@ -1,9 +1,8 @@
 // ==================== API CONFIGURATION ====================
 
 export const API_CONFIG = {
-  // Use same-origin '/api' by default and rely on Next.js rewrites to proxy to the backend.
-  // Override with NEXT_PUBLIC_API_URL in environments where a direct URL is desired.
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || '/api',
+  // The backend URL is exposed via environment variables
+  BASE_URL: process.env.NEXT_PUBLIC_BACKEND_URL,
   TIMEOUT: 30000, // 30 seconds
 } as const;
 

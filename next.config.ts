@@ -9,11 +9,12 @@ const nextConfig: NextConfig = {
    * y anotar explícitamente los componentes a optimizar.
    */
   reactCompiler: false,
+
   async rewrites() {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3000/api/:path*',
+        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/:path*`,
       },
     ];
   },

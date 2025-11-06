@@ -12,7 +12,6 @@ let refreshPromise: Promise<string> | null = null;
  * Create axios instance with default configuration
  */
 const apiClient: AxiosInstance = axios.create({
-  baseURL: API_CONFIG.BASE_URL,
   timeout: API_CONFIG.TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
@@ -31,7 +30,7 @@ async function refreshAccessToken(): Promise<string> {
   }
 
   // Call refresh token endpoint (backend expects snake_case)
-  const response = await axios.post(`${API_CONFIG.BASE_URL}/auth/refresh`, {
+  const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/refresh`, {
     refresh_token: refreshToken,
   });
 
@@ -53,6 +52,9 @@ async function refreshAccessToken(): Promise<string> {
  */
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    if (!config.baseURL) {
+      config.baseURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+    }
     const token = getLocalStorage<string | null>(AUTH_CONFIG.TOKEN_KEY, null);
 
     if (token) {
@@ -138,7 +140,7 @@ apiClient.interceptors.response.use(
         }
 
         // Call refresh token endpoint (backend expects snake_case)
-        const response = await axios.post(`${API_CONFIG.BASE_URL}/auth/refresh`, {
+        const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/refresh`, {
           refresh_token: refreshToken,
         });
 
