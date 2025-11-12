@@ -8,7 +8,7 @@ import {
   removeCartItem,
   clearCart,
   checkoutCart,
-  checkoutCartMercadoPago,
+  checkoutCartStripe,
 } from '@/src/services/cartService';
 import * as apiClient from '../../../src/lib/apiClient';
 
@@ -104,14 +104,14 @@ describe('cartService', () => {
     });
   });
 
-  describe('checkoutCartMercadoPago', () => {
-    it('should create MercadoPago preference', async () => {
-      const mockPreference = { initPoint: 'https://mercadopago.com' };
+  describe('checkoutCartStripe', () => {
+    it('should create Stripe checkout session', async () => {
+      const mockPreference = { sessionId: 'cs_test_123', url: 'https://checkout.stripe.com' };
       (apiClient.post as jest.Mock).mockResolvedValueOnce(mockPreference);
 
-      const result = await checkoutCartMercadoPago('cart-123');
+      const result = await checkoutCartStripe('cart-123');
 
-      expect(apiClient.post).toHaveBeenCalledWith('/carts/cart-123/checkout/mercadopago');
+      expect(apiClient.post).toHaveBeenCalledWith('/carts/cart-123/checkout/stripe');
       expect(result).toEqual(mockPreference);
     });
   });

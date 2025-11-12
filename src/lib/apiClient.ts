@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { API_CONFIG, AUTH_CONFIG, ERROR_MESSAGES } from './constants';
-import { getLocalStorage, setLocalStorage, removeLocalStorage } from './utils';
+import { getLocalStorage, setLocalStorage, removeLocalStorage, removeCookie } from './utils';
 import { isTokenExpiringSoon } from './jwtUtils';
 import type { ApiError } from './types';
 
@@ -15,6 +15,7 @@ const apiClient: AxiosInstance = axios.create({
   timeout: API_CONFIG.TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true', // Required for ngrok free tier
   },
 });
 
@@ -161,13 +162,34 @@ apiClient.interceptors.response.use(
 
         return apiClient(originalRequest);
       } catch {
-        // Refresh failed - clear auth data and redirect to login
+        // Refresh failed - clear auth data
         removeLocalStorage(AUTH_CONFIG.TOKEN_KEY);
         removeLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY);
         removeLocalStorage(AUTH_CONFIG.USER_KEY);
+        removeCookie(AUTH_CONFIG.TOKEN_KEY);
+        removeCookie('activeRole');
 
+        // Clear auth state manually to avoid circular dependencies
+        // The store will be rehydrated on next page load/refresh
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          import('@/src/stores/useAuthStore')
+            .then((module) => {
+              const { useAuthStore } = module;
+              // Clear all auth-related state
+              useAuthStore.setState({
+                user: null,
+                isAuthenticated: false,
+                isLoading: false,
+                error: null,
+                twoFactorEnabled: null,
+                roles: [],
+                permissions: [],
+                activeRole: null,
+              });
+            })
+            .catch((err) => {
+              console.error('[apiClient] Error resetting auth store:', err);
+            });
         }
 
         return Promise.reject({

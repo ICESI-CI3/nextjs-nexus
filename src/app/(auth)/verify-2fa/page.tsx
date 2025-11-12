@@ -13,11 +13,11 @@ export default function Verify2FAPage() {
             <div className="mb-3 flex items-center justify-center">
               {/* Logo oficial proporcionado por el equipo */}
               <Image
-                src="/logo.svg"
+                src="/dark-logo.svg"
                 alt="TicketHub"
-                className="h-10 w-auto"
-                width={144}
-                height={40}
+                className="h-12 w-auto"
+                width={180}
+                height={50}
               />
             </div>
             <h1 className="text-2xl font-semibold text-slate-900">Verificación en dos pasos</h1>

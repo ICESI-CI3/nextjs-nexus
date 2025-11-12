@@ -190,28 +190,29 @@ export interface Purchase {
 // ==================== PAYMENT TYPES ====================
 
 /**
- * Payment preference response - matches backend ResponsePreferenceDto
+ * Payment preference response - matches backend ResponsePreferenceDto (Stripe)
  */
 export interface PaymentPreference {
-  preferenceId: string;
-  initPoint: string;
-  sandboxInitPoint: string;
+  paymentLinkId: string; // Stripe session ID
+  checkoutUrl: string; // URL to redirect user to Stripe checkout
   cartId: string;
+  provider: string; // "stripe"
 }
 
 /**
- * Payment type
+ * Payment type (Stripe)
  */
 export interface Payment {
   id: string;
-  mpPaymentId: string;
-  mpPreferenceId: string;
-  mpMerchantOrderId: string;
+  paymentProviderId: string; // Stripe session ID
+  preferenceId?: string; // Also the session ID
+  merchantOrderId?: string; // Payment Intent ID
+  paymentProvider?: string; // "stripe"
   amount: number | string; // Can be string due to PostgreSQL decimal conversion
   status: PaymentStatus;
-  paymentMethod: string;
-  paymentType: string;
-  statusDetail: string;
+  paymentMethod?: string; // "card", etc.
+  paymentType?: string; // "checkout_session"
+  statusDetail?: string; // "paid", "unpaid"
   createdAt: Date | string;
   updatedAt: Date | string;
 }

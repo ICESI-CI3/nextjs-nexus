@@ -11,7 +11,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useCartStore } from '@/src/stores/useCartStore';
 import { useAuthStore } from '@/src/stores/useAuthStore';
-import { Can } from '@/src/components/auth/Can';
 
 function isActivePath(current: string | null, target: string): boolean {
   if (!current) return false;
@@ -91,11 +90,11 @@ export default function Navbar() {
           <div className="flex items-center">
             <Link href={getLogoRedirect()} className="transition-opacity hover:opacity-80">
               <Image
-                src="/logo.svg"
+                src="/dark-logo.svg"
                 alt="TicketHub"
-                width={144}
-                height={40}
-                className="h-8 w-auto"
+                width={180}
+                height={50}
+                className="h-12 w-auto"
               />
             </Link>
           </div>
@@ -115,20 +114,6 @@ export default function Navbar() {
 
             {user ? (
               <>
-                {/* Admin solo con permiso */}
-                <Can permission="VIEW_USERS">
-                  <Link
-                    href="/admin"
-                    className={`text-sm transition-colors ${
-                      isActivePath(pathname, '/admin')
-                        ? 'font-semibold text-blue-600'
-                        : 'text-gray-700 hover:text-blue-600'
-                    }`}
-                  >
-                    Admin
-                  </Link>
-                </Can>
-
                 {/* Mis Compras - Solo para usuarios con rol BUYER */}
                 {hasBuyerRole && (
                   <Link

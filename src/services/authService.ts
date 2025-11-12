@@ -227,6 +227,19 @@ async function getProfile(): Promise<User> {
 
   const response = await apiClient.get<ProfileResponse>('/auth/me');
 
+  // Validate that roles exist - a user without roles is invalid
+  if (!response.data.roles || response.data.roles.length === 0) {
+    console.error('[authService] User profile has no roles - invalid state');
+    throw new Error('Usuario sin roles asignados. Por favor contacte al administrador.');
+  }
+
+  console.log('[authService] getProfile response:', {
+    id: response.data.id,
+    email: response.data.email,
+    rolesCount: response.data.roles.length,
+    roles: response.data.roles.map((r) => r.name),
+  });
+
   // Map ProfileResponseDto to User type (keep roles for permission checks)
   return {
     id: response.data.id,
@@ -238,8 +251,8 @@ async function getProfile(): Promise<User> {
     roles: response.data.roles.map((r) => ({
       id: r.id,
       name: r.name,
-      permissionIds: r.permissions.map((p) => p.id),
-      permissions: r.permissions,
+      permissionIds: r.permissions?.map((p) => p.id) || [],
+      permissions: r.permissions || [],
     })), // Map to Role interface with permissionIds
     createdAt: new Date().toISOString(), // Not provided by /me, use current date
   };
