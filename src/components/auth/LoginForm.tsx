@@ -79,17 +79,9 @@ export default function LoginForm() {
           refreshToken: result.refreshToken,
         });
 
-        try {
-          await fetchProfile();
-        } catch (error) {
-          // Use debug level to avoid error overlay in development
-          if (process.env.NODE_ENV !== 'production') {
-            console.debug('Failed to fetch profile:', error);
-          }
-        }
-
-        // No redirigimos aquí - dejamos que login/page.tsx maneje
-        // la redirección basada en activeRole a través de su useEffect
+        // Fetch profile and wait for it to complete
+        // LoginPage will handle redirection once profile is loaded
+        await fetchProfile();
       } catch (err) {
         const error = err as {
           message?: string;

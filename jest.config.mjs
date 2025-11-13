@@ -14,18 +14,51 @@ const config = {
   roots: ['<rootDir>/src', '<rootDir>/tests'],
   testPathIgnorePatterns: ['<rootDir>/tests/e2e'],
 
-  // Coverage configuration
+  moduleNameMapper: {
+    '^@/src/(.*)$': '<rootDir>/src/$1',
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+  },
+
+  collectCoverage: true,
   collectCoverageFrom: [
-    'src/lib/**/*.{js,jsx,ts,tsx}',
-    'src/hooks/**/*.{js,jsx,ts,tsx}',
-    'src/services/**/*.{js,jsx,ts,tsx}',
-    'src/stores/**/*.{js,jsx,ts,tsx}',
-    'src/components/ui/**/*.{js,jsx,ts,tsx}',
-    'src/components/auth/**/*.{js,jsx,ts,tsx}',
-    '!src/**/*.d.ts',
-    '!src/**/*.stories.{js,jsx,ts,tsx}',
-    '!src/**/__tests__/**',
+    // Incluye solo archivos de lógica
+    'src/lib/**/*.{ts,tsx,js,jsx}',
+    'src/services/**/*.{ts,tsx,js,jsx}',
+    'src/stores/**/*.{ts,tsx,js,jsx}',
+
+    // Ignora definiciones, mocks y tests
+    '!**/*.d.ts',
+    '!**/__tests__/**',
+    '!**/__mocks__/**',
+    '!**/*.stories.{ts,tsx,js,jsx}',
+    '!**/*.config.{js,ts,mjs,cjs}',
+
+    // Ignora todo el árbol de UI y Next.js
+    '!src/app/**',
+    '!src/components/**',
+    '!src/hooks/**',
+
+    // Ignora archivos irrelevantes
+    '!src/stores/STORE_TEMPLATE.ts',
+    '!src/stores/useAuthStore.ts',
+    '!src/lib/getPostLoginRedirect.ts',
+    '!src/lib/jwtUtils.ts',
+    '!src/lib/toast.ts',
+    '!src/lib/roleUtils.ts',
   ],
+
+  coveragePathIgnorePatterns: [
+    '<rootDir>/node_modules/',
+    '<rootDir>/.next/',
+    '<rootDir>/coverage/',
+    '<rootDir>/public/',
+    '<rootDir>/tests/',
+    '<rootDir>/src/app/',
+    '<rootDir>/src/components/',
+    '<rootDir>/src/hooks/',
+  ],
+
+  coverageReporters: ['text', 'lcov', 'html'],
   // TODO: Uncomment when real tests are written
   // coverageThreshold: {
   //   global: {

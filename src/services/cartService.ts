@@ -63,8 +63,8 @@ export async function checkoutCart(cartId: string): Promise<Purchase> {
 }
 
 /**
- * Create MercadoPago payment preference for cart checkout
+ * Create Stripe checkout session for cart checkout
  */
-export async function checkoutCartMercadoPago(cartId: string): Promise<PaymentPreference> {
-  return post<PaymentPreference>(`/carts/${cartId}/checkout/mercadopago`);
+export async function checkoutCartStripe(cartId: string): Promise<PaymentPreference> {
+  return post<PaymentPreference>(`/carts/${cartId}/checkout/stripe`);
 }

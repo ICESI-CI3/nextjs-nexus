@@ -50,8 +50,8 @@ interface CartActions {
   // Checkout cart (direct)
   checkout: (cartId: string) => Promise<Purchase>;
 
-  // Checkout cart with MercadoPago
-  checkoutMercadoPago: (cartId: string) => Promise<PaymentPreference>;
+  // Checkout cart with Stripe
+  checkoutStripe: (cartId: string) => Promise<PaymentPreference>;
 
   // Set current cart
   setCurrentCart: (cart: Cart | null) => void;
@@ -273,12 +273,12 @@ export const useCartStore = create<CartStore>((set, get) => ({
     }
   },
 
-  // Checkout cart with MercadoPago
-  checkoutMercadoPago: async (cartId) => {
+  // Checkout cart with Stripe
+  checkoutStripe: async (cartId) => {
     try {
       set({ isLoading: true, error: null });
 
-      const preference = await cartService.checkoutCartMercadoPago(cartId);
+      const preference = await cartService.checkoutCartStripe(cartId);
 
       set({ isLoading: false });
 
@@ -286,7 +286,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
     } catch (error) {
       const apiError = error as ApiError;
       set({
-        error: apiError.message || 'Error al crear preferencia de pago',
+        error: apiError.message || 'Error al crear sesión de pago',
         isLoading: false,
       });
       throw error;

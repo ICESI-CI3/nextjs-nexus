@@ -16,23 +16,21 @@ interface CartSummaryProps {
 
 export default function CartSummary({ cart }: CartSummaryProps) {
   const router = useRouter();
-  const { checkout, checkoutMercadoPago } = useCartStore();
+  const { checkout, checkoutStripe } = useCartStore();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDirectCheckout, setIsDirectCheckout] = useState(false);
 
   const totalAmount = Number(cart.totalAmount);
 
-  const handleMercadoPagoCheckout = async () => {
+  const handleStripeCheckout = async () => {
     setIsProcessing(true);
     try {
-      const preference = await checkoutMercadoPago(cart.id);
-      showToast.success('Redirigiendo a MercadoPago...');
-      // Redirect to MercadoPago checkout
-      // Use sandboxInitPoint for testing, initPoint for production
-      const checkoutUrl = preference.sandboxInitPoint || preference.initPoint;
-      window.location.href = checkoutUrl;
+      const preference = await checkoutStripe(cart.id);
+      showToast.success('Redirigiendo a Stripe...');
+      // Redirect to Stripe checkout
+      window.location.href = preference.checkoutUrl;
     } catch {
-      showToast.error('Error al crear preferencia de pago');
+      showToast.error('Error al crear sesión de pago');
       setIsProcessing(false);
     }
   };
@@ -77,7 +75,7 @@ export default function CartSummary({ cart }: CartSummaryProps) {
       {/* Checkout buttons */}
       <div className="space-y-3">
         <Button
-          onClick={handleMercadoPagoCheckout}
+          onClick={handleStripeCheckout}
           disabled={isProcessing || isDirectCheckout || cart.items.length === 0}
           variant="primary"
           fullWidth

@@ -52,6 +52,7 @@ export const ROUTES = {
   ORGANIZER_EVENTS: '/organizer/events',
   ORGANIZER_EVENT_TICKETS: (id: string) => `/organizer/events/${id}/tickets`,
   ORGANIZER_COMMENTS: '/organizer/comments',
+  ORGANIZER: '/organizer',
 
   // Add more routes based on your application needs
   // Example: USERS: '/users',

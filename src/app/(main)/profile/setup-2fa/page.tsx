@@ -61,6 +61,7 @@ function Setup2FAPageContent() {
   const router = useRouter();
   const twoFactorEnabled = useAuthStore((s) => s.twoFactorEnabled);
   const setTwoFactorEnabled = useAuthStore((s) => s.setTwoFactorEnabled);
+  const fetchProfile = useAuthStore((s) => s.fetchProfile);
 
   const [setupData, setSetupData] = React.useState<{
     secret: string;
@@ -163,8 +164,11 @@ function Setup2FAPageContent() {
       setEnableFormSuccess('2FA activado correctamente');
       setTwoFactorEnabled(true);
 
+      // Actualizar el perfil completo para reflejar el cambio
+      await fetchProfile();
+
       setTimeout(() => {
-        router.push(ROUTES.DASHBOARD);
+        router.push(ROUTES.PROFILE); // Redirige de vuelta al perfil
       }, 1500);
     } catch (err: unknown) {
       const { message } = getErrorInfo(err);
@@ -297,7 +301,7 @@ function Setup2FAPageContent() {
                     type="button"
                     variant="secondary"
                     fullWidth
-                    onClick={() => router.push(ROUTES.DASHBOARD)}
+                    onClick={() => router.push(ROUTES.PROFILE)}
                   >
                     Cancelar
                   </Button>
@@ -371,8 +375,12 @@ function Setup2FAPageContent() {
                   await authService.disable2FA(disableCode.trim());
                   setDisableFormSuccess('2FA desactivado correctamente');
                   setTwoFactorEnabled(false);
+
+                  // Actualizar el perfil completo para reflejar el cambio
+                  await fetchProfile();
+
                   setTimeout(() => {
-                    router.push(ROUTES.DASHBOARD);
+                    router.push(ROUTES.PROFILE);
                   }, 1500);
                 } catch (err: unknown) {
                   const { message } = getErrorInfo(err);

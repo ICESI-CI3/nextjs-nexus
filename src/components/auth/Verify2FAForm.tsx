@@ -103,7 +103,12 @@ function Verify2FAFormContent() {
         }
 
         const next = searchParams.get('next');
-        router.push(next || ROUTES.DASHBOARD);
+        if (next) {
+          router.push(next);
+        } else {
+          // Redirigir a la página raíz, que a su vez redirigirá al home del rol
+          router.push('/');
+        }
       } catch (err) {
         const error = err as {
           message?: string;

@@ -2,7 +2,13 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User } from '@/src/lib/types';
 import { AUTH_CONFIG, ROUTES } from '@/src/lib/constants';
-import { getLocalStorage, setLocalStorage, removeLocalStorage } from '@/src/lib/utils';
+import {
+  getLocalStorage,
+  setLocalStorage,
+  removeLocalStorage,
+  setCookie,
+  removeCookie,
+} from '@/src/lib/utils';
 import { setAuthToken, removeAuthToken } from '@/src/lib/apiClient';
 import authService, {
   type LoginResult,
@@ -186,11 +192,17 @@ export const useAuthStore = create<AuthStore>()(
           permissions: permNames,
           activeRole: finalActiveRole,
         });
+
+        // Sincronizar activeRole con cookies para el middleware
+        if (finalActiveRole) {
+          setCookie('activeRole', finalActiveRole, 7);
+        }
       },
 
       setTokens: (tokens) => {
         setAuthToken(tokens.accessToken);
         setLocalStorage(AUTH_CONFIG.TOKEN_KEY, tokens.accessToken);
+        setCookie(AUTH_CONFIG.TOKEN_KEY, tokens.accessToken, 7); // 7 días
         if (tokens.refreshToken) {
           setLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY, tokens.refreshToken);
         }
@@ -263,6 +275,8 @@ export const useAuthStore = create<AuthStore>()(
           removeAuthToken();
           removeLocalStorage(AUTH_CONFIG.TOKEN_KEY);
           removeLocalStorage(AUTH_CONFIG.REFRESH_TOKEN_KEY);
+          removeCookie(AUTH_CONFIG.TOKEN_KEY);
+          removeCookie('activeRole');
 
           set({
             user: null,
@@ -306,8 +320,31 @@ export const useAuthStore = create<AuthStore>()(
           const profile = await authService.getProfile();
           get().setUser(profile);
         } catch (e: unknown) {
+          // Check if error is 401/403 (unauthorized/forbidden)
+          // Check both Axios error format and our ApiError format
+          const axiosError = e as { response?: { status?: number } };
+          const apiError = e as { statusCode?: number };
+          const isAuthError =
+            axiosError.response?.status === 401 ||
+            axiosError.response?.status === 403 ||
+            apiError.statusCode === 401 ||
+            apiError.statusCode === 403;
+
+          // Check if error is about missing roles
+          const errorMessage = msgFromUnknown(e, '');
+          const isMissingRolesError = errorMessage.toLowerCase().includes('sin roles');
+
+          if (isAuthError || isMissingRolesError) {
+            const reason = isAuthError ? 'Token inválido (401/403)' : 'Usuario sin roles asignados';
+            console.error(`[AuthStore] ${reason}, haciendo logout...`);
+            // Clear all auth state
+            await get().logout();
+            throw new Error(isAuthError ? 'Sesión expirada' : errorMessage);
+          }
+
           const msg = msgFromUnknown(e, 'Error al cargar perfil');
-          set({ error: msg });
+          console.error('[AuthStore] Failed to fetch profile:', msg);
+          set({ error: msg, isLoading: false });
           throw new Error(msg);
         } finally {
           set({ isLoading: false });
@@ -358,6 +395,8 @@ export const useAuthStore = create<AuthStore>()(
         }
 
         set({ activeRole: normalized });
+        // Sincronizar con cookies para que el middleware pueda acceder
+        setCookie('activeRole', normalized, 7);
       },
 
       getAvailableRoles: () => {

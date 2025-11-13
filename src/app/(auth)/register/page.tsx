@@ -10,11 +10,11 @@ export default function RegisterPage() {
           <div className="mb-6 flex flex-col items-center text-center">
             <div className="mb-3 flex items-center justify-center">
               <Image
-                src="/logo.svg"
+                src="/dark-logo.svg"
                 alt="TicketHub"
-                className="h-10 w-auto"
-                width={144}
-                height={40}
+                className="h-12 w-auto"
+                width={180}
+                height={50}
               />
             </div>
             <h1 className="text-2xl font-semibold text-slate-900">Crea tu cuenta</h1>

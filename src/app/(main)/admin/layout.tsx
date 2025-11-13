@@ -1,9 +1,11 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/src/hooks/useAuth';
 import useRequireAuth from '@/src/hooks/useRequireAuth';
+import { ROUTES } from '@/src/lib/constants';
 
 interface NavItem {
   name: string;
@@ -170,13 +172,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center justify-between border-b border-slate-800 px-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
-                <span className="text-lg font-bold text-white">T</span>
-              </div>
-              <span className="text-lg font-semibold text-white">TicketHub</span>
-            </div>
+          <div className="flex h-16 items-center justify-between border-b border-slate-800 px-3.5">
+            <button
+              onClick={() => router.push(ROUTES.ADMIN)}
+              className="flex items-center transition-opacity hover:opacity-80"
+            >
+              <Image
+                src="/white-logo.svg"
+                alt="TicketHub"
+                width={180}
+                height={50}
+                className="h-12 w-auto"
+              />
+            </button>
             <button
               onClick={() => setSidebarOpen(false)}
               className="text-slate-400 hover:text-white lg:hidden"
@@ -215,19 +223,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           {/* User info */}
           <div className="border-t border-slate-800 p-4">
-            <div className="mb-3 flex items-center gap-3">
+            <button
+              onClick={() => router.push(ROUTES.PROFILE)}
+              className="mb-3 flex w-full items-center gap-3 rounded-lg py-2 transition-colors hover:bg-slate-800"
+            >
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-sm font-medium text-white">
                 {user?.firstName?.charAt(0).toUpperCase() ||
                   user?.email?.charAt(0).toUpperCase() ||
                   'A'}
               </div>
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden text-left">
                 <p className="truncate text-sm font-medium text-white">
                   {user?.firstName || 'Admin'}
                 </p>
                 <p className="truncate text-xs text-slate-400">{user?.email}</p>
               </div>
-            </div>
+            </button>
             <button
               onClick={logout}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
