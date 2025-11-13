@@ -14,8 +14,8 @@ aplicación. El objetivo es que cualquier persona que lea este informe, sin cono
 previo del proyecto, comprenda cómo funciona la aplicación y dónde localizar cada
 componente o responsabilidad en el código.
 
-Resumen ejecutivo
-------------------
+## Resumen ejecutivo
+
 La aplicación es un frontend construido con Next.js (app router) que consume una API
 backend (configurada mediante la variable de entorno NEXT_PUBLIC_BACKEND_URL). Se
 emplean React y Zustand para la gestión del estado, axios para las llamadas HTTP y Zod
@@ -24,9 +24,10 @@ registro, verificación 2FA), áreas diferenciadas por roles (administrador, org
 comprador, staff) y las funciones típicas para gestión de eventos, compra de entradas,
 gestión de usuarios y permisos.
 
-Estructura general del proyecto
--------------------------------
+## Estructura general del proyecto
+
 Raíz principal: `src/`
+
 - `src/app/` : Rutas y páginas (separadas en grupos de rutas: `(auth)`, `(main)`)
   - `(auth)`: `login`, `register`, `verify-2fa` (páginas públicas de autenticación).
   - `(main)`: áreas protegidas: `dashboard`, `events`, `admin`, `organizer`, `profile`,
@@ -42,8 +43,8 @@ Raíz principal: `src/`
 - `src/lib/` : Utilidades y tipos (`apiClient.ts`, `jwtUtils.ts`, `permissions.ts`,
   `roleUtils.ts`, `constants.ts`, `utils.ts`, `types.ts`).
 
-Lista de pantallas y componentes principales
-------------------------------------------
+## Lista de pantallas y componentes principales
+
 Se enumeran a continuación las pantallas relevantes y los componentes asociados, con
 una breve descripción de su funcionalidad y ubicación en el repositorio.
 
@@ -76,8 +77,8 @@ una breve descripción de su funcionalidad y ubicación en el repositorio.
     páginas usan servicios como `roleService`, `permissionService` y componentes UI
     específicos en `src/components/admin/`.
 
-Descripción de funcionalidades implementadas
--------------------------------------------
+## Descripción de funcionalidades implementadas
+
 La aplicación implementa las siguientes funcionalidades (lista exhaustiva por áreas):
 
 - Registro de usuarios con posibilidad de requerir verificación 2FA por el backend.
@@ -98,9 +99,10 @@ La aplicación implementa las siguientes funcionalidades (lista exhaustiva por �
 - Paginación, validación en formularios con Zod, y mensajes de error manejados en
   componentes (no se usan window.alert).
 
-Implementación de la autenticación (detalles técnicos)
-----------------------------------------------------
+## Implementación de la autenticación (detalles técnicos)
+
 Contrato y elementos principales
+
 - Inputs/outputs: el frontend solicita endpoints del backend como `/auth/login`,
   `/auth/verify-2fa`, `/auth/refresh`, `/auth/me` y consume respuestas que contienen
   `access_token` y `refresh_token` (snake_case en backend, luego normalizado en el
@@ -108,8 +110,9 @@ Contrato y elementos principales
 - Puntos de entrada del frontend: `authService.ts` y `useAuthStore.ts`.
 
 Flujo de login
+
 1. El usuario completa `LoginForm` y el componente invoca `authService.login(email,
-   password)`.
+password)`.
 2. `authService.login` realiza una petición POST a `/auth/login` a través de
    `apiClient`.
    - Si la respuesta incluye `requires2FA: true`, el formulario guarda temporalmente
@@ -128,6 +131,7 @@ Flujo de login
    controlado por `roleUtils.getRedirectByRole`).
 
 Almacenamiento de tokens y seguridad
+
 - Tokens (access y refresh) se almacenan en `localStorage` mediante utilidades
   (`setLocalStorage`) y también se instalan en las cabeceras por `apiClient`.
 - Se utiliza una estrategia de refresh proactiva: `apiClient` comprueba en el
@@ -140,6 +144,7 @@ Almacenamiento de tokens y seguridad
   redirige a `/login`.
 
 Verificación 2FA
+
 - Cuando el backend indica `requires2FA`, el frontend guarda temporalmente
   credenciales en `sessionStorage` (clave `temp_2fa_email` y `temp_2fa_password`)
   y redirige a la página de verificación `Verify2FAForm`.
@@ -147,15 +152,17 @@ Verificación 2FA
   `/auth/verify-2fa`, que devuelven tokens que se persisten igual que en el
   flujo normal, y se solicita el perfil.
 
-Implementación de la autorización (roles y permisos)
------------------------------------------------
+## Implementación de la autorización (roles y permisos)
+
 Modelo de roles y permisos
+
 - Roles genéricos del sistema: `ADMINISTRATOR`, `ORGANIZER`, `BUYER`, `STAFF`.
   Estas constantes están definidas en `src/lib/roleUtils.ts`.
 - Cada rol puede incluir permisos (objetos con `id` y `name`) que provienen
   del backend y se almacenan dentro del `user.roles` en el store.
 
 Comprobaciones y control de acceso
+
 - Utilidades: `src/lib/permissions.ts` ofrece `hasPermission`, `hasAnyPermission`
   y `hasAllPermissions` para evaluar permisos en base al perfil recibido.
 - Hook `useCan(permissionName)` ofrece una forma compacta de verificar permisos
@@ -165,6 +172,7 @@ Comprobaciones y control de acceso
   y evita bucles de redirect mientras se resuelve el perfil.
 
 Asignación y cambio de rol
+
 - El store `useAuthStore` expone `switchRole(role)` y `getAvailableRoles()`
   (filtra roles genéricos del usuario). `setUser` del store determina
   automáticamente el `activeRole` si aún no existe o si el rol activo ya no
@@ -173,14 +181,16 @@ Asignación y cambio de rol
   `components/profile/RoleSwitcher.tsx`) y las páginas se adaptan a la vista
   correspondiente según `activeRole`.
 
-Gestión del estado
-------------------
+## Gestión del estado
+
 Resumen de la solución escogida
+
 - La gestión del estado se realiza con Zustand (`src/stores/*`). Se opta por
   store locales por dominio (auth, cart, events, categories, purchases, venues)
   en lugar de un store global monolítico.
 
 Detalles del store de autenticación
+
 - `src/stores/useAuthStore.ts`:
   - Implementa el store con `create` y `persist` de `zustand`.
   - Estado inicial: `user`, `isAuthenticated`, `isLoading`, `error`,
@@ -192,17 +202,20 @@ Detalles del store de autenticación
     permissions, activeRole y flags de sesión).
 
 Patrones de uso
+
 - Los componentes consumen el store mediante selectors (ej. `useAuthStore(s => s.user)`)
   para minimizar re-renders. Además existe el hook `useAuth` que agrupa
   selectores y acciones frecuentemente usados por componentes.
 
 Otros stores
+
 - `useCartStore`, `useEventStore`, `useCategoryStore`, `usePurchaseStore`,
   `useVenueStore` gestionan los estados específicos de cada dominio. Estos
   stores encapsulan fetches, paginación, filtros y acciones CRUD en combinación
   con los services ubicados en `src/services/`.
 
 Gestión de efectos secundarios y API client
+
 - `src/lib/apiClient.ts` implementa un Axios instance con interceptors para:
   - Añadir cabecera Authorization con el token si existe.
   - Proactividad: si el token está a punto de expirar, invoca el endpoint de
@@ -210,9 +223,10 @@ Gestión de efectos secundarios y API client
   - Manejar 401/403/422/500 y errores de red de forma centralizada, normalizando
     respuestas y redirigiendo a login cuando corresponde.
 
-Pruebas, despliegue y pipelines
--------------------------------
+## Pruebas, despliegue y pipelines
+
 Pruebas
+
 - El proyecto incluye configuración para pruebas unitarias con Jest y
   pruebas E2E con Playwright (`jest.config.mjs`, `playwright.config.ts` y
   scripts en `package.json`). Comandos relevantes:
@@ -220,21 +234,24 @@ Pruebas
   - `npm run test:e2e` — ejecuta Playwright
 
 Despliegue
+
 - Existe `vercel.json` y la aplicación está preparada para desplegar en Vercel.
   Para desplegar en una nube se requiere configurar la variable de entorno
   `NEXT_PUBLIC_BACKEND_URL` que apunta al backend (por ejemplo la app de NestJS
   del taller anterior).
 
 Pipelines (recomendación / evidencia)
+
 - No se incluyen archivos de CI/CD específicos (GitHub Actions) en el repositorio
   analizado, pero la estructura de scripts permite crear pipelines que ejecuten
   `npm test`, `npm run test:e2e` y `npm run build` antes del despliegue.
 
-Comprobación de requisitos del taller y mapeo con la implementación
-------------------------------------------------------------------
+## Comprobación de requisitos del taller y mapeo con la implementación
+
 Se incluye a continuación el enunciado del taller y el mapeo a la implementación.
 
 Enunciado (extracto relevante):
+
 - Objetivo: Desarrollar una aplicación frontend utilizando Next.js, que consuma los
   servicios expuestos en el taller anterior desarrollado con NestJS.
 - Requisitos mínimos (resumen):
@@ -248,6 +265,7 @@ Enunciado (extracto relevante):
     y E2E.
 
 Cumplimiento observado
+
 - Autenticación: Implementada con JWT.
   - `authService.login`, `authService.verify2FA`, `authService.refresh` y `authService.logout`.
   - Tokens persistidos en `localStorage` y seteados en `apiClient`.
@@ -281,12 +299,14 @@ Cumplimiento observado
   (`vercel.json`) y con scripts para pruebas y build. Falta un archivo de CI
   explícito, pero puede crearse fácilmente usando los scripts existentes.
 
-Instrucciones para ejecutar el proyecto localmente
--------------------------------------------------
+## Instrucciones para ejecutar el proyecto localmente
+
 Requisitos previos:
+
 - Node.js (v18+ recomendado) y npm.
 
 Pasos:
+
 1. Clonar el repositorio y posicionarse en la raíz del proyecto.
 2. Instalar dependencias:
 
@@ -295,6 +315,7 @@ npm install
 ```
 
 3. Configurar variables de entorno (al menos):
+
 - `NEXT_PUBLIC_BACKEND_URL` → URL base del backend (ej. `http://localhost:3000`).
 
 4. Ejecutar en modo desarrollo (nota: el script usa puerto 3001):
@@ -310,8 +331,8 @@ npm test          # Jest
 npm run test:e2e  # Playwright
 ```
 
-Aspectos técnicos y casos límite tratados
-----------------------------------------
+## Aspectos técnicos y casos límite tratados
+
 - Manejo de tokens concurrentes: `apiClient` evita múltiples refresh simultáneos
   y reintenta la petición original tras obtener un nuevo access token.
 - Flujos con 2FA: el sistema diferencia entre un login que requiere 2FA y uno que
@@ -322,8 +343,8 @@ Aspectos técnicos y casos límite tratados
 - Validación: formularios se validan con Zod y se normalizan errores para mostrar
   mensajes amigables.
 
-Limitaciones y recomendaciones (mejoras de bajo riesgo)
-------------------------------------------------------
+## Limitaciones y recomendaciones (mejoras de bajo riesgo)
+
 Se enumeran recomendaciones que no fueron solicitadas explícitamente pero que
 mejoran seguridad y robustez:
 
@@ -344,8 +365,8 @@ mejoran seguridad y robustez:
    cubran flujos críticos: registro → login → 2FA → redirección por rol,
    y refresco de token durante uso prolongado.
 
-Listado de archivos y responsabilidades (referencia rápida)
-----------------------------------------------------------
+## Listado de archivos y responsabilidades (referencia rápida)
+
 - `src/services/authService.ts` : Lógica de llamadas a endpoints de autenticación
   (login, loginWith2FA, verify2FA, refresh, logout, setup2FA, enable/disable 2FA,
   getProfile, register, createUser).
@@ -363,12 +384,11 @@ Listado de archivos y responsabilidades (referencia rápida)
 - `src/app/(main)/admin/*` : Interfaces administrativas (roles, users, permissions,
   events, categories, venues).
 
-Conclusión
-----------
+## Conclusión
+
 La aplicación implementa de manera integral los requisitos solicitados en el
 taller: autenticación basada en JWT con refresh y 2FA, autorización mediante
 roles y permisos, gestión centralizada del estado con Zustand, interfaces para
 listar/crear/editar/eliminar contenidos y una estructura modular que facilita la
 extensión y el testing. Se incluyen pruebas unitarias y E2E en la base del
 proyecto y la aplicación está preparada para desplegar en Vercel.
-

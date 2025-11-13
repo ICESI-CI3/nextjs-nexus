@@ -27,6 +27,7 @@ Esta aplicación frontend desarrollada con Next.js consume los servicios expuest
 ### Funcionalidades implementadas
 
 #### Autenticación
+
 - Sistema de autenticación basado en tokens JWT (JSON Web Tokens)
 - Inicio y cierre de sesión de usuarios
 - Autenticación de dos factores (2FA) con TOTP
@@ -35,6 +36,7 @@ Esta aplicación frontend desarrollada con Next.js consume los servicios expuest
 - Persistencia de sesión en `localStorage`
 
 #### Autorización
+
 - Sistema de roles: ADMINISTRATOR, ORGANIZER, BUYER, STAFF
 - Permisos basados en roles para restringir acceso a funcionalidades
 - Interfaz de administración para gestionar roles y permisos
@@ -42,6 +44,7 @@ Esta aplicación frontend desarrollada con Next.js consume los servicios expuest
 - Componentes que se muestran u ocultan según el rol del usuario
 
 #### Gestión de eventos
+
 - Listado de eventos con paginación y filtros
 - Creación, edición y eliminación de eventos (según permisos)
 - Gestión de tipos de tickets para cada evento
@@ -49,12 +52,14 @@ Esta aplicación frontend desarrollada con Next.js consume los servicios expuest
 - Visualización detallada de cada evento
 
 #### Gestión de compras
+
 - Carrito de compras funcional
 - Proceso de checkout completo
 - Historial de compras del usuario
 - Validación de tickets mediante QR
 
 #### Administración
+
 - Panel administrativo completo (solo para administradores)
 - Gestión de usuarios: crear, editar, eliminar, asignar roles
 - Gestión de roles y permisos
@@ -62,6 +67,7 @@ Esta aplicación frontend desarrollada con Next.js consume los servicios expuest
 - Administración de todos los eventos del sistema
 
 #### Interfaz de usuario
+
 - Interfaz moderna y responsiva con Tailwind CSS
 - Validación de formularios con Zod
 - Mensajes de error amigables (no se usa `window.alert`)
@@ -69,10 +75,17 @@ Esta aplicación frontend desarrollada con Next.js consume los servicios expuest
 - Componentes reutilizables y organizados por dominio
 
 #### Gestión del estado
+
 - Implementación con Zustand para estado global
 - Store de autenticación centralizado (`useAuthStore`)
 - Stores por dominio: carrito, eventos, categorías, compras, venues
 - Persistencia selectiva del estado en `localStorage`
+
+---
+
+## Documentación
+
+Para más información detallada sobre la arquitectura, implementación y funcionalidades del proyecto, consulta el [Informe completo de funcionalidades](./docs/REPORT.md).
 
 ---
 
@@ -241,8 +254,9 @@ nextjs-nexus/
 ├── tests/
 │   ├── unit/                  # Pruebas unitarias
 │   └── e2e/                   # Pruebas end-to-end
+├── docs/
+│   └── REPORT.md              # Informe detallado de funcionalidades
 ├── public/                    # Archivos estáticos
-├── REPORT.md                  # Informe detallado de funcionalidades
 └── package.json               # Dependencias y scripts
 ```
 
